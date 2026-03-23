@@ -13,7 +13,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.ScoreKeeper"
+      "bundleIdentifier": "com.roman.scorekeeper",
+      "buildNumber": "2"
     },
     "android": {
       "adaptiveIcon": {
