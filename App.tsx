@@ -1,0 +1,31 @@
+import React, { useEffect, useState } from 'react';
+import { View, ActivityIndicator } from 'react-native';
+import AppNavigator from './src/navigation/AppNavigator';
+import { syncFromCloud } from './src/storage/StorageService';
+
+export default function App() {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const init = async () => {
+      try {
+        await syncFromCloud();
+      } catch (e) {
+        // iCloud non disponible, on continue
+      } finally {
+        setReady(true);
+      }
+    };
+    init();
+  }, []);
+
+  if (!ready) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#6c63ff" />
+      </View>
+    );
+  }
+
+  return <AppNavigator />;
+}

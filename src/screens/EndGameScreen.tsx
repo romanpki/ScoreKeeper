@@ -1,0 +1,380 @@
+import React, { useEffect, useState } from 'react';
+import {
+  View, Text, StyleSheet, TouchableOpacity,
+  ScrollView, Share,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/AppNavigator';
+import { getGameById, getPlayers, upsertGame } from '../storage/StorageService';
+import { getGameConfig } from '../games';
+import { Game, Player } from '../types';
+
+type NavProp = NativeStackNavigationProp<RootStackParamList, 'EndGame'>;
+type RouteType = RouteProp<RootStackParamList, 'EndGame'>;
+
+function generateId(): string {
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
+function formatDuration(startedAt: number, finishedAt: number): string {
+  const mins = Math.round((finishedAt - startedAt) / 60000);
+  if (mins < 60) return `${mins} min`;
+  return `${Math.floor(mins / 60)}h${mins % 60 > 0 ? String(mins % 60).padStart(2, '0') : ''}`;
+}
+
+function formatDate(ts: number): string {
+  return new Date(ts).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+export default function EndGameScreen() {
+  const navigation = useNavigation<NavProp>();
+  const route = useRoute<RouteType>();
+  const { gameId } = route.params;
+
+  const [game, setGame] = useState<Game | null>(null);
+  const [players, setPlayers] = useState<Player[]>([]);
+
+  useEffect(() => {
+    const load = async () => {
+      const g = await getGameById(gameId);
+      if (!g) return;
+      setGame(g);
+      const all = await getPlayers();
+      setPlayers(all.filter(p => g.playerIds.includes(p.id)));
+    };
+    load();
+  }, [gameId]);
+
+  if (!game) return null;
+  const config = getGameConfig(game.gameConfigId);
+  if (!config) return null;
+
+  // ── Calcul des totaux et classement ──────────────────────────────────────────
+
+  const totals = game.playerIds.map(id => ({
+    id,
+    player: players.find(p => p.id === id),
+    total: game.rounds.reduce((s, r) => s + (r.scores[id]?.computed ?? 0), 0),
+  }));
+
+  const ranked = [...totals].sort((a, b) =>
+    config.scoreDirection === 'high' ? b.total - a.total : a.total - b.total
+  );
+
+  // Calcul des rangs avec gestion des égalités
+  const ranks: Record<string, number> = {};
+  ranked.forEach((entry, i) => {
+    if (i === 0) {
+      ranks[entry.id] = 1;
+    } else {
+      ranks[entry.id] = ranked[i - 1].total === entry.total
+        ? ranks[ranked[i - 1].id]
+        : i + 1;
+    }
+  });
+
+  // ── Podium (1er au centre, 2e à gauche, 3e à droite) ────────────────────────
+
+  const podium = [ranked[1], ranked[0], ranked[2]].filter(Boolean);
+  const podiumHeights = [56, 80, 40];
+
+  // ── Stats ────────────────────────────────────────────────────────────────────
+
+  const allScores = game.rounds.flatMap(r =>
+    game.playerIds.map(id => ({
+      playerId: id,
+      round: r.roundNumber,
+      score: r.scores[id]?.computed ?? 0,
+    }))
+  );
+  const bestScore = allScores.reduce((a, b) =>
+    config.scoreDirection === 'low'
+      ? (a.score < b.score ? a : b)
+      : (a.score > b.score ? a : b)
+  );
+  const worstScore = allScores.reduce((a, b) =>
+    config.scoreDirection === 'low'
+      ? (a.score > b.score ? a : b)
+      : (a.score < b.score ? a : b)
+  );
+  const avg = allScores.reduce((s, x) => s + x.score, 0) / allScores.length;
+  const doubledCount = game.rounds.reduce((count, r) =>
+    count + game.playerIds.filter(id => (r.scores[id]?.rawInput as any)?.doubled).length, 0
+  );
+  const firstDoubled = game.rounds.flatMap(r =>
+    game.playerIds
+      .filter(id => (r.scores[id]?.rawInput as any)?.doubled)
+      .map(id => `${players.find(p => p.id === id)?.name} M${r.roundNumber}`)
+  )[0];
+
+  // ── Revanche ──────────────────────────────────────────────────────────────────
+
+  async function handleRevanche() {
+    const newGame: Game = {
+      id: generateId(),
+      gameConfigId: game!.gameConfigId,
+      playerIds: game!.playerIds,
+      rounds: [],
+      status: 'playing',
+      winnerId: null,
+      startedAt: Date.now(),
+      finishedAt: null,
+      metadata: {},
+    };
+    await upsertGame(newGame);
+    navigation.replace('Game', { gameId: newGame.id });
+  }
+
+  async function handleShare() {
+    const lines = ranked.map((r, i) =>
+      `${ranks[r.id]}. ${r.player?.name ?? '?'} — ${r.total} pts`
+    );
+    await Share.share({
+      message: `${config.name} — ${game.rounds.length} ${game.rounds.length > 1 ? 'manches' : 'manche'}\n${lines.join('\n')}`,
+    });
+  }
+
+  // ── Rendu ─────────────────────────────────────────────────────────────────────
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.scroll}>
+
+        {/* Titre */}
+        <View style={styles.titleBlock}>
+          <Text style={styles.subtitle}>Partie terminée</Text>
+          <Text style={styles.gameTitle}>
+            {config.name} — {game.rounds.length} {game.rounds.length > 1 ? 'manches' : 'manche'}
+          </Text>
+          <Text style={styles.dateText}>
+            {formatDate(game.startedAt)}
+            {game.finishedAt ? ` · ${formatDuration(game.startedAt, game.finishedAt)}` : ''}
+          </Text>
+        </View>
+
+        {/* Podium */}
+        <View style={styles.podium}>
+          {podium.map((entry, i) => {
+            const rankNum = entry ? ranks[entry.id] : i + 1;
+            const isWinner = rankNum === 1;
+            const height = podiumHeights[i];
+            return (
+              <View key={entry.id} style={styles.podiumCol}>
+                {isWinner && <Text style={styles.star}>★</Text>}
+                <View style={[
+                  styles.podiumAvatar,
+                  isWinner && styles.podiumAvatarWinner,
+                  { backgroundColor: (entry.player?.color ?? '#999') + '33' },
+                ]}>
+                  <Text style={[
+                    styles.podiumAvatarText,
+                    { color: entry.player?.color ?? '#333' },
+                    isWinner && { fontSize: 20 },
+                  ]}>
+                    {entry.player?.name[0].toUpperCase() ?? '?'}
+                  </Text>
+                </View>
+                <Text style={[styles.podiumName, isWinner && styles.podiumNameWinner]}>
+                  {entry.player?.name ?? '?'}
+                </Text>
+                <Text style={[styles.podiumScore, isWinner && styles.podiumScoreWinner]}>
+                  {entry.total} pts
+                </Text>
+                <View style={[styles.podiumBar, { height }, isWinner && styles.podiumBarWinner]}>
+                  <Text style={[styles.podiumRank, isWinner && styles.podiumRankWinner]}>
+                    {rankNum}
+                  </Text>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+
+        {/* 4e et + */}
+        {ranked.slice(3).map((entry, i) => (
+          <View key={entry.id} style={styles.extraRow}>
+            <View style={[styles.extraAvatar,
+              { backgroundColor: (entry.player?.color ?? '#999') + '22' }]}>
+              <Text style={[styles.extraAvatarText, { color: entry.player?.color ?? '#333' }]}>
+                {entry.player?.name[0].toUpperCase() ?? '?'}
+              </Text>
+            </View>
+            <Text style={styles.extraName}>{entry.player?.name ?? '?'}</Text>
+            <Text style={styles.extraRank}>{ranks[entry.id]}e</Text>
+            <Text style={styles.extraScore}>{entry.total} pts</Text>
+          </View>
+        ))}
+
+        {/* Détail par manche */}
+        <Text style={styles.sectionTitle}>Détail par manche</Text>
+        <ScrollView horizontal style={styles.tableScroll}>
+          <View style={styles.table}>
+            <View style={styles.tableRow}>
+              <Text style={[styles.cell, styles.nameCol, styles.cellHeader]} />
+              {game.rounds.map(r => (
+                <Text key={r.roundNumber} style={[styles.cell, styles.cellHeader]}>M{r.roundNumber}</Text>
+              ))}
+              <Text style={[styles.cell, styles.totCol, styles.cellHeader]}>Tot</Text>
+            </View>
+            {ranked.map((entry) => (
+              <View key={entry.id} style={[styles.tableRow, ranks[entry.id] === 1 && styles.tableRowWinner]}>
+                <Text style={[styles.cell, styles.nameCol, ranks[entry.id] === 1 && styles.cellWinner]} numberOfLines={1}>
+                  {entry.player?.name ?? '?'}
+                </Text>
+                {game.rounds.map(r => {
+                  const score = r.scores[entry.id];
+                  const doubled = (score?.rawInput as any)?.doubled;
+                  return (
+                    <Text key={r.roundNumber} style={[styles.cell, doubled && styles.cellDoubled, ranks[entry.id] === 1 && styles.cellWinner]}>
+                      {score?.computed ?? '-'}
+                    </Text>
+                  );
+                })}
+                <Text style={[styles.cell, styles.totCol, styles.cellBold, ranks[entry.id] === 1 ? styles.cellWinner : styles.cellWorse]}>
+                  {entry.total}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+
+        {/* Stats */}
+        <Text style={styles.sectionTitle}>Stats de la partie</Text>
+        <View style={styles.statsGrid}>
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>Meilleure manche</Text>
+            <Text style={styles.statValue}>
+              {players.find(p => p.id === bestScore.playerId)?.name} M{bestScore.round} ({bestScore.score})
+            </Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>Pire manche</Text>
+            <Text style={[styles.statValue, styles.statBad]}>
+              {players.find(p => p.id === worstScore.playerId)?.name} M{worstScore.round} ({worstScore.score})
+            </Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>Moyenne / manche</Text>
+            <Text style={styles.statValue}>{avg.toFixed(1)} pts</Text>
+          </View>
+          {config.id === 'skyjo' && (
+            <View style={styles.statCard}>
+              <Text style={styles.statLabel}>Doublés infligés</Text>
+              <Text style={styles.statValue}>
+                {doubledCount > 0 ? `${doubledCount} (${firstDoubled})` : 'Aucun'}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Boutons */}
+        <View style={styles.btnRow}>
+          <TouchableOpacity style={styles.btnSecondary} onPress={handleShare}>
+            <Text style={styles.btnSecondaryText}>↑ Partager</Text>
+          </TouchableOpacity>
+        </View>
+        <TouchableOpacity
+  style={styles.btnPrimary}
+  onPress={() => navigation.navigate('Home')}
+>
+  <Text style={styles.btnPrimaryText}>Retour à l'accueil</Text>
+</TouchableOpacity>
+<TouchableOpacity
+  style={styles.btnSecondaryFull}
+  onPress={() => navigation.navigate('History')}
+>
+  <Text style={styles.btnSecondaryFullText}>Voir l'historique</Text>
+</TouchableOpacity>
+        <TouchableOpacity style={styles.btnOutline} onPress={handleRevanche}>
+          <Text style={styles.btnOutlineText}>Revanche avec les mêmes joueurs</Text>
+        </TouchableOpacity>
+
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const PURPLE = '#6c63ff';
+const GREEN = '#0F6E56';
+const GREEN_BG = '#E1F5EE';
+const RED = '#A32D2D';
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: '#f7f7f7' },
+  scroll: { padding: 20, gap: 16 },
+  titleBlock: { alignItems: 'center', paddingTop: 8 },
+  subtitle: { fontSize: 13, color: '#888', marginBottom: 4 },
+  gameTitle: { fontSize: 20, fontWeight: '500', color: '#1a1a1a' },
+  dateText: { fontSize: 12, color: '#aaa', marginTop: 4 },
+  star: { fontSize: 22, color: '#EF9F27', marginBottom: 4 },
+  podium: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: 12 },
+  podiumCol: { alignItems: 'center', width: 80 },
+  podiumAvatar: {
+    width: 44, height: 44, borderRadius: 22,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 6,
+  },
+  podiumAvatarWinner: { width: 52, height: 52, borderRadius: 26, borderWidth: 2, borderColor: GREEN },
+  podiumAvatarText: { fontSize: 17, fontWeight: '500' },
+  podiumName: { fontSize: 13, fontWeight: '500', color: '#1a1a1a' },
+  podiumNameWinner: { fontSize: 14, color: '#1a1a1a' },
+  podiumScore: { fontSize: 12, color: '#888', marginBottom: 6 },
+  podiumScoreWinner: { fontSize: 13, fontWeight: '500', color: GREEN },
+  podiumBar: {
+    width: '100%', backgroundColor: '#f0f0f0',
+    borderRadius: 8, borderBottomLeftRadius: 0, borderBottomRightRadius: 0,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  podiumBarWinner: { backgroundColor: GREEN_BG },
+  podiumRank: { fontSize: 18, fontWeight: '500', color: '#888' },
+  podiumRankWinner: { fontSize: 22, color: GREEN },
+  extraRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#f0f0f0', borderRadius: 10, padding: 10,
+  },
+  extraAvatar: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  extraAvatarText: { fontSize: 9, fontWeight: '500' },
+  extraName: { flex: 1, fontSize: 13, color: '#1a1a1a' },
+  extraRank: { fontSize: 11, color: '#aaa' },
+  extraScore: { fontSize: 13, fontWeight: '500', color: RED },
+  sectionTitle: { fontSize: 14, fontWeight: '500', color: '#1a1a1a' },
+  tableScroll: { borderRadius: 12, overflow: 'hidden' },
+  table: { backgroundColor: '#fff', borderRadius: 12, padding: 8 },
+  tableRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4 },
+  tableRowWinner: { backgroundColor: GREEN_BG, borderRadius: 6 },
+  cell: { width: 40, textAlign: 'center', fontSize: 11, color: '#666' },
+  cellHeader: { fontWeight: '500', color: '#aaa', fontSize: 10 },
+  cellBold: { fontWeight: '500' },
+  cellWinner: { color: '#085041', fontWeight: '500' },
+  cellWorse: { color: '#1a1a1a' },
+  cellDoubled: { color: RED, fontWeight: '500' },
+  nameCol: { width: 60, textAlign: 'left', paddingLeft: 6 },
+  totCol: { width: 36 },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  statCard: {
+    width: '47%', backgroundColor: '#fff',
+    borderRadius: 10, padding: 10,
+  },
+  statLabel: { fontSize: 11, color: '#888', marginBottom: 2 },
+  statValue: { fontSize: 14, fontWeight: '500', color: '#1a1a1a' },
+  statBad: { color: RED },
+  btnRow: { flexDirection: 'row', gap: 8 },
+  btnSecondary: {
+    flex: 1, padding: 12, borderRadius: 12,
+    backgroundColor: '#fff', borderWidth: 1, borderColor: '#e0e0e0',
+    alignItems: 'center',
+  },
+  btnSecondaryText: { fontSize: 14, fontWeight: '500', color: '#1a1a1a' },
+  btnPrimary: {
+    backgroundColor: PURPLE, borderRadius: 12,
+    paddingVertical: 14, alignItems: 'center',
+  },
+  btnPrimaryText: { color: '#fff', fontSize: 15, fontWeight: '500' },
+  btnOutline: {
+    borderRadius: 12, paddingVertical: 12,
+    backgroundColor: '#fff', borderWidth: 1, borderColor: PURPLE + '66',
+    alignItems: 'center',
+  },
+  btnOutlineText: { color: PURPLE, fontSize: 14, fontWeight: '500' },
+});
