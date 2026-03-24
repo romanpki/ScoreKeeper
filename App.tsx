@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import AppNavigator from './src/navigation/AppNavigator';
 import { syncFromCloud } from './src/storage/StorageService';
 
@@ -27,5 +28,10 @@ export default function App() {
     );
   }
 
-  return <AppNavigator />;
+  return (
+    <>
+      <StatusBar style="auto" />
+      <AppNavigator />
+    </>
+  );
 }
