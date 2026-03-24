@@ -1,5 +1,5 @@
 # ScoreKeeper — État du projet
-*Dernière mise à jour : mars 2026*
+*Dernière mise à jour : mars 2026 — Android ajouté*
 
 ---
 
@@ -12,11 +12,13 @@
 | Navigation | React Navigation (native stack) | ^7.x |
 | Stockage local | AsyncStorage | 2.2.0 |
 | Stockage cloud | iCloud KVS (module natif Swift custom) | — |
-| Build / IDE | Xcode (SSD externe Hagibis) + VS Code | — |
-| Device cible | iPhone 17 Pro Max, iOS 26.3.1 | — |
+| Build / IDE | Xcode (SSD externe Hagibis) + VS Code + Android Studio | — |
+| Device cible iOS | iPhone 17 Pro Max, iOS 26.3.1 | — |
+| Device cible Android | Tout device Android API 24+ | — |
 
 **Repo GitHub :** https://github.com/romanpki/ScoreKeeper
-**Bundle Identifier :** `com.roman.scorekeeper`
+**Bundle Identifier (iOS) :** `com.roman.scorekeeper`
+**Package Android :** `com.roman.scorekeeper`
 **Compte Apple Developer payant :** actif depuis mars 2026
 
 ---
@@ -97,35 +99,61 @@
 - [ ] Moyenne de score, meilleure partie, série de victoires
 - [ ] Cache de stats avec invalidation incrémentale si > 200 parties
 
-### Futur — Android
+### Android ✅ (chantier initial terminé)
 
-- Le projet est en bare workflow Expo → une version Android est possible
-- Commande : `npx expo run:android`
-- Le module iCloud KVS est iOS uniquement → prévoir une alternative pour Android (ex: Google Drive API ou désactivation conditionnelle par plateforme)
-- À traiter comme un chantier séparé
+- Dossier `android/` généré via `npx expo prebuild --platform android`
+- `src/storage/ICloudKVS.ts` : conditionnel `Platform.OS === 'ios'` → sur Android, toutes les opérations iCloud sont des no-ops silencieux
+- Sur Android : stockage **AsyncStorage uniquement** (offline-first, pas de sync cloud)
+- `App.tsx` : `<StatusBar style="auto" />` ajouté pour le bon rendu Android
+- `app.json` : `package: "com.roman.scorekeeper"`, `versionCode: 1`, icône adaptative configurée
+
+**Pour builder Android :**
+```bash
+# Dev (émulateur ou device)
+cd ~/Downloads/ScoreKeeper && npx expo run:android
+
+# Build Release
+cd ~/Downloads/ScoreKeeper/android && ./gradlew bundleRelease
+```
+
+**Prochaines étapes Android (optionnel) :**
+- [ ] Tester sur un vrai device Android
+- [ ] Créer un keystore de signature pour la production
+- [ ] Distribution Google Play (25 USD one-time) ou APK direct
 
 ---
 
 ## Architecture — rappels clés pour Claude Code
 
 - Ne pas modifier `ios/Pods/` (généré automatiquement)
+- Ne pas modifier `android/` manuellement — généré par `expo prebuild`, relancer si besoin
 - Les fichiers Swift custom sont dans `ios/ScoreKeeper/` et survivent aux rebuilds Expo
 - `package.json` : `"main": "index.js"` — ne pas modifier
 - Xcode : `/Volumes/Hagibis/Applications/Xcode.app`
 - Couleur principale : `const PURPLE = '#6c63ff'` (défini localement dans chaque écran)
 - Pour ajouter un jeu avec scores à 0 par défaut : chercher les 2 occurrences de `papayoo || flip7 || odin` dans GameScreen
 - Tout nouveau jeu `inputType: 'simple'` = juste ajouter la config dans `src/games/index.ts`
+- Code spécifique iOS : utiliser `Platform.OS === 'ios'` (voir `ICloudKVS.ts` comme exemple)
 
 ---
 
 ## Commandes essentielles
 
 ```bash
-# Dev avec Metro (debug)
+# Dev iOS avec Metro (debug)
 cd ~/Downloads/ScoreKeeper && npx expo start --ios
 
-# Build Release sur iPhone physique (production)
+# Dev Android (émulateur ou device connecté)
+cd ~/Downloads/ScoreKeeper && npx expo run:android
+
+# Build Release iOS sur iPhone physique (production)
 cd ~/Downloads/ScoreKeeper && npx expo run:ios --configuration Release --device
+
+# Build Release Android (Google Play)
+cd ~/Downloads/ScoreKeeper/android && ./gradlew bundleRelease
+
+# Régénérer le dossier android/ (si app.json modifié)
+cd ~/Downloads/ScoreKeeper && npx expo prebuild --platform android --no-install
 
 # Ouvrir Xcode
 open -a /Volumes/Hagibis/Applications/Xcode.app ~/Downloads/ScoreKeeper/ios/ScoreKeeper.xcworkspace
