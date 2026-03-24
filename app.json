@@ -13,7 +13,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.roman.scorekeeper"
+      "bundleIdentifier": "com.roman.scorekeeper",
+      "buildNumber": "2"
     },
     "android": {
       "package": "com.roman.scorekeeper",
