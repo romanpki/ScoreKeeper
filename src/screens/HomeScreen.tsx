@@ -11,9 +11,8 @@ import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { GAME_CONFIGS } from '../games';
-import { getCurrentGames, getGames, saveGames, getPlayers } from '../storage/StorageService';
-import { Game, Player } from '../types';
+import { getCurrentGames, getGames, saveGames, getPlayers, getAllGameConfigs } from '../storage/StorageService';
+import { Game, GameConfig, Player } from '../types';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -22,19 +21,24 @@ export default function HomeScreen() {
   const [currentGames, setCurrentGames] = useState<Game[]>([]);
   const [recentGames, setRecentGames] = useState<Game[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
+  const [allConfigs, setAllConfigs] = useState<GameConfig[]>([]);
 
   useEffect(() => {
     const load = async () => {
-      const current = await getCurrentGames();
+      const [current, all, allPlayers, configs] = await Promise.all([
+        getCurrentGames(),
+        getGames(),
+        getPlayers(),
+        getAllGameConfigs(),
+      ]);
       setCurrentGames(current);
-      const all = await getGames();
-      const finished = all
-        .filter(g => g.status === 'finished')
-        .sort((a, b) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0))
-        .slice(0, 3);
-      setRecentGames(finished);
-      const allPlayers = await getPlayers();
-setPlayers(allPlayers);
+      setRecentGames(
+        all.filter(g => g.status === 'finished')
+          .sort((a, b) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0))
+          .slice(0, 3)
+      );
+      setPlayers(allPlayers);
+      setAllConfigs(configs);
     };
     load();
     const unsubscribe = navigation.addListener('focus', load);
@@ -92,7 +96,7 @@ setPlayers(allPlayers);
                   onPress={() => navigation.navigate('Game', { gameId: game.id })}
                 >
                   <Text style={styles.currentGameName}>
-                    {GAME_CONFIGS.find(g => g.id === game.gameConfigId)?.name ?? 'Jeu'}
+                    {allConfigs.find(g => g.id === game.gameConfigId)?.name ?? 'Jeu'}
                   </Text>
                  <Text style={styles.currentGameSub}>
   {game.playerIds
@@ -134,7 +138,7 @@ setPlayers(allPlayers);
       onPress={() => navigation.navigate('EndGame', { gameId: game.id })}
     >
       <Text style={styles.recentName}>
-        {GAME_CONFIGS.find(g => g.id === game.gameConfigId)?.name ?? 'Jeu'}
+        {allConfigs.find(g => g.id === game.gameConfigId)?.name ?? 'Jeu'}
         <Text style={styles.recentManches}> · {game.rounds.length} manches</Text>
       </Text>
       <Text style={styles.recentSub}>
@@ -148,16 +152,43 @@ setPlayers(allPlayers);
 
         {/* Jeux disponibles */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Jeux disponibles</Text>
-          <View style={styles.chips}>
-            {GAME_CONFIGS.map(game => (
-              <View key={game.id} style={styles.chip}>
-                <Text style={styles.chipText}>{game.name}</Text>
-              </View>
-            ))}
-            <TouchableOpacity style={styles.chipAdd}>
-              <Text style={styles.chipAddText}>+ Ajouter</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Jeux disponibles</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('NewGame')}>
+              <Text style={styles.seeAll}>+ Ajouter</Text>
             </TouchableOpacity>
+          </View>
+          <View style={styles.gameList}>
+            {allConfigs.map((game, index) => {
+              const unavailable = game.inputType === 'bid';
+              const isCustom = !!(game.specialRules as any)?.isCustom;
+              const isLast = index === allConfigs.length - 1;
+              return (
+                <View
+                  key={game.id}
+                  style={[styles.gameListRow, !isLast && styles.gameListRowBorder]}
+                >
+                  <View style={styles.gameListLeft}>
+                    <Text style={[styles.gameListName, unavailable && styles.gameListNameDisabled]}>
+                      {game.name}
+                    </Text>
+                    {unavailable && (
+                      <View style={styles.soonBadge}>
+                        <Text style={styles.soonBadgeText}>Bientôt</Text>
+                      </View>
+                    )}
+                    {isCustom && !unavailable && (
+                      <View style={styles.customBadge}>
+                        <Text style={styles.customBadgeText}>Perso</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={[styles.gameListMeta, unavailable && styles.gameListMetaDisabled]}>
+                    {game.minPlayers}–{game.maxPlayers} joueurs
+                  </Text>
+                </View>
+              );
+            })}
           </View>
         </View>
 
@@ -228,21 +259,29 @@ const styles = StyleSheet.create({
   recentName: { fontSize: 15, fontWeight: '600', color: '#1a1a1a' },
   recentSub: { fontSize: 13, color: '#888', marginTop: 2 },
   recentManches: { fontSize: 13, color: '#aaa', fontWeight: '400' },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+  gameList: {
+    backgroundColor: '#fff', borderRadius: 12,
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 1,
+    overflow: 'hidden',
   },
-  chipText: { fontSize: 14, color: '#333' },
-  chipAdd: {
-    backgroundColor: PURPLE + '18',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+  gameListRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingVertical: 13,
   },
-  chipAddText: { fontSize: 14, color: PURPLE, fontWeight: '600' },
+  gameListRowBorder: { borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+  gameListLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  gameListName: { fontSize: 15, fontWeight: '500', color: '#1a1a1a' },
+  gameListNameDisabled: { color: '#bbb' },
+  gameListMeta: { fontSize: 12, color: '#aaa' },
+  gameListMetaDisabled: { color: '#ddd' },
+  soonBadge: {
+    backgroundColor: '#f0f0f0', borderRadius: 6,
+    paddingHorizontal: 6, paddingVertical: 2,
+  },
+  soonBadgeText: { fontSize: 10, color: '#bbb', fontWeight: '500' },
+  customBadge: {
+    backgroundColor: PURPLE + '18', borderRadius: 6,
+    paddingHorizontal: 6, paddingVertical: 2,
+  },
+  customBadgeText: { fontSize: 10, color: PURPLE, fontWeight: '600' },
 });
