@@ -7,9 +7,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { getGameById, getPlayers, upsertGame, getGames, saveGames } from '../storage/StorageService';
-import { getGameConfig } from '../games';
-import { Game, Player, Round } from '../types';
+import {
+  getGameById, getPlayers, upsertGame, getGames, saveGames,
+  getAllGameConfigs,
+} from '../storage/StorageService';
+import { Game, GameConfig, Player, Round } from '../types';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'Game'>;
 type RoutePropType = RouteProp<RootStackParamList, 'Game'>;
@@ -20,38 +22,47 @@ export default function GameScreen() {
   const { gameId } = route.params;
 
   const [game, setGame] = useState<Game | null>(null);
+  const [config, setConfig] = useState<GameConfig | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [inputs, setInputs] = useState<Record<string, string>>({});
   const [firstPlayerId, setFirstPlayerId] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState<string>('');
   const [flip7Achieved, setFlip7Achieved] = useState<string | null>(null);
-
+  const [winRoundWinner, setWinRoundWinner] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
       const g = await getGameById(gameId);
       if (!g) return;
       setGame(g);
+
+      const allConfigs = await getAllGameConfigs();
+      const cfg = allConfigs.find(c => c.id === g.gameConfigId) ?? null;
+      setConfig(cfg);
+
       const allPlayers = await getPlayers();
       setPlayers(allPlayers.filter(p => g.playerIds.includes(p.id)));
+
+      const initToZero = cfg?.id === 'papayoo' || cfg?.id === 'flip7' || cfg?.id === 'odin';
       const init: Record<string, string> = {};
-      g.playerIds.forEach(id => { init[id] = (g.gameConfigId === 'papayoo' || g.gameConfigId === 'flip7' || g.gameConfigId === 'odin') ? '0' : ''; });      setInputs(init);
+      g.playerIds.forEach(id => { init[id] = initToZero ? '0' : ''; });
+      setInputs(init);
     };
     load();
   }, [gameId]);
-useEffect(() => {
-  const interval = setInterval(() => {
-    if (!game) return;
-    const diff = Date.now() - game.startedAt;
-    const mins = Math.floor(diff / 60000);
-    const secs = Math.floor((diff % 60000) / 1000);
-    setElapsed(mins > 0 ? `${mins}min${secs > 0 ? ` ${secs}s` : ''}` : `${secs}s`);
-  }, 1000);
-  return () => clearInterval(interval);
-}, [game?.startedAt]);
-  if (!game) return null;
-  const config = getGameConfig(game.gameConfigId);
-  if (!config) return null;
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!game) return;
+      const diff = Date.now() - game.startedAt;
+      const mins = Math.floor(diff / 60000);
+      const secs = Math.floor((diff % 60000) / 1000);
+      setElapsed(mins > 0 ? `${mins}min${secs > 0 ? ` ${secs}s` : ''}` : `${secs}s`);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [game?.startedAt]);
+
+  if (!game || !config) return null;
 
   // ── Cumulatif ────────────────────────────────────────────────────────────────
 
@@ -107,12 +118,12 @@ useEffect(() => {
   function checkEndCondition(rounds: Round[]): boolean {
     if (!config) return false;
     if (config.endCondition === 'threshold') {
-  const threshold = (game!.metadata as any)?.targetScore ?? config.endValue;
-  return game!.playerIds.some(id => {
-    const total = rounds.reduce((s, r) => s + (r.scores[id]?.computed ?? 0), 0);
-    return total >= threshold;
-  });
-}
+      const threshold = (game!.metadata as any)?.targetScore ?? config.endValue;
+      return game!.playerIds.some(id => {
+        const total = rounds.reduce((s, r) => s + (r.scores[id]?.computed ?? 0), 0);
+        return total >= threshold;
+      });
+    }
     if (config.endCondition === 'fixed' && config.endValue !== null) {
       return rounds.length >= config.endValue;
     }
@@ -133,10 +144,85 @@ useEffect(() => {
     return totals[0].id;
   }
 
-  // ── Validation ────────────────────────────────────────────────────────────────
+  // ── Terminer la partie manuellement ──────────────────────────────────────────
+
+  function handleForceEnd() {
+    if (!game || game.rounds.length === 0) return;
+    const currentLeader = determineWinner(game.rounds);
+    Alert.alert(
+      'Terminer la partie',
+      'Sélectionne le vainqueur :',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        ...players.map(p => ({
+          text: p.name + (p.id === currentLeader ? ' 👑' : ''),
+          onPress: () => forceEndGame(p.id),
+        })),
+      ]
+    );
+  }
+
+  async function forceEndGame(winnerId: string) {
+    if (!game) return;
+    const updatedGame: Game = {
+      ...game,
+      status: 'finished',
+      winnerId,
+      finishedAt: Date.now(),
+    };
+    await upsertGame(updatedGame);
+    navigation.replace('EndGame', { gameId: game.id });
+  }
+
+  // ── Validation — Trio (tracker de victoires) ──────────────────────────────────
+
+  async function handleValidateTrio() {
+    if (!game || !config) return;
+    if (!winRoundWinner) {
+      Alert.alert('Vainqueur manquant', 'Sélectionne qui a gagné cette manche.');
+      return;
+    }
+
+    const roundNumber = game.rounds.length + 1;
+    const scores: Round['scores'] = {};
+    game.playerIds.forEach(id => {
+      const wins = id === winRoundWinner ? 1 : 0;
+      scores[id] = {
+        rawInput: { winner: id === winRoundWinner },
+        computed: wins,
+        cumulative: getCumulative(id) + wins,
+      };
+    });
+
+    const newRound: Round = { roundNumber, scores, timestamp: Date.now() };
+    const updatedRounds = [...game.rounds, newRound];
+    const isFinished = checkEndCondition(updatedRounds);
+
+    const updatedGame: Game = {
+      ...game,
+      rounds: updatedRounds,
+      status: isFinished ? 'finished' : 'playing',
+      winnerId: isFinished ? determineWinner(updatedRounds) : null,
+      finishedAt: isFinished ? Date.now() : null,
+    };
+
+    await upsertGame(updatedGame);
+    setGame(updatedGame);
+    setWinRoundWinner(null);
+
+    if (isFinished) {
+      navigation.replace('EndGame', { gameId: game.id });
+    }
+  }
+
+  // ── Validation — jeux numériques ──────────────────────────────────────────────
 
   async function handleValidate() {
     if (!game || !config) return;
+
+    if (config.inputType === 'wins') {
+      return handleValidateTrio();
+    }
 
     const missing = game.playerIds.some(id => inputs[id].trim() === '');
     if (missing) {
@@ -182,13 +268,13 @@ useEffect(() => {
       const original = parseInt(inputs[id], 10) || 0;
       const val = rawValues[id];
       scores[id] = {
-  rawInput: {
-    value: original,
-    first: id === firstPlayerId,
-    doubled: doubled[id] ?? false,
-    original,
-    flip7: id === flip7Achieved,
-  },
+        rawInput: {
+          value: original,
+          first: id === firstPlayerId,
+          doubled: doubled[id] ?? false,
+          original,
+          flip7: id === flip7Achieved,
+        },
         computed: val,
         cumulative: getCumulative(id) + val,
       };
@@ -211,8 +297,9 @@ useEffect(() => {
     setFirstPlayerId(null);
     setFlip7Achieved(null);
 
+    const initToZero = config.id === 'papayoo' || config.id === 'flip7' || config.id === 'odin';
     const init: Record<string, string> = {};
-    game.playerIds.forEach(id => { init[id] = (config.id === 'papayoo' || config.id === 'flip7' || config.id === 'odin') ? '0' : ''; });
+    game.playerIds.forEach(id => { init[id] = initToZero ? '0' : ''; });
     setInputs(init);
 
     if (isFinished) {
@@ -220,35 +307,43 @@ useEffect(() => {
     }
   }
 
-async function handleAbandon() {
-  Alert.alert(
-    'Abandonner la partie ?',
-    'La partie sera supprimée définitivement.',
-    [
-      { text: 'Annuler', style: 'cancel' },
-      {
-        text: 'Abandonner', style: 'destructive',
-        onPress: async () => {
-          const all = await getGames();
-          await saveGames(all.filter(g => g.id !== game!.id));
-          navigation.navigate('Home');
+  async function handleAbandon() {
+    Alert.alert(
+      'Abandonner la partie ?',
+      'La partie sera supprimée définitivement.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Abandonner', style: 'destructive',
+          onPress: async () => {
+            const all = await getGames();
+            await saveGames(all.filter(g => g.id !== game!.id));
+            navigation.navigate('Home');
+          },
         },
-      },
-    ]
-  );
-}
+      ]
+    );
+  }
 
   // ── Rendu ──────────────────────────────────────────────────────────────────────
 
   const roundNumber = game.rounds.length + 1;
+  const targetScore = (game.metadata as any)?.targetScore ?? config.endValue;
+
   const endLabel = config.id === 'papayoo'
     ? `${game.playerIds.length} manches`
-   : config.endCondition === 'threshold'
-    ? `Fin à ${(game.metadata as any)?.targetScore ?? config.endValue}`
+    : config.inputType === 'wins'
+    ? `Fin à ${targetScore} victoire${targetScore > 1 ? 's' : ''}`
+    : config.endCondition === 'threshold'
+    ? `Fin à ${targetScore}`
     : config.endCondition === 'fixed'
     ? `${config.endValue} manches`
     : 'Manches choisies';
-  const dirLabel = config.scoreDirection === 'low' ? 'Le + bas gagne' : 'Le + haut gagne';
+
+  const dirLabel = config.inputType === 'wins'
+    ? ''
+    : config.scoreDirection === 'low' ? 'Le + bas gagne' : 'Le + haut gagne';
+
   const skyjoNotes = getSkyjoDoubledNotes();
 
   return (
@@ -264,8 +359,12 @@ async function handleAbandon() {
             <Text style={styles.gameName}>{config.name}</Text>
             <View style={styles.headerMeta}>
               <Text style={styles.metaText}>{endLabel}</Text>
-              <Text style={styles.metaDot}> · </Text>
-              <Text style={styles.metaDir}>{dirLabel}</Text>
+              {dirLabel ? (
+                <>
+                  <Text style={styles.metaDot}> · </Text>
+                  <Text style={styles.metaDir}>{dirLabel}</Text>
+                </>
+              ) : null}
             </View>
           </View>
           <Text style={styles.roundSub}>Manche {roundNumber}{elapsed ? ` · ${elapsed}` : ''}</Text>
@@ -286,7 +385,9 @@ async function handleAbandon() {
                     M{r.roundNumber}
                   </Text>
                 ))}
-                <Text style={[styles.tableCell, styles.tableCellHeader, styles.totalCell]}>Total</Text>
+                <Text style={[styles.tableCell, styles.tableCellHeader, styles.totalCell]}>
+                  {config.inputType === 'wins' ? 'Vict.' : 'Total'}
+                </Text>
               </View>
               {players.map(player => (
                 <View key={player.id} style={styles.tableRow}>
@@ -297,18 +398,30 @@ async function handleAbandon() {
                     <Text style={styles.tableNameText} numberOfLines={1}>{player.name}</Text>
                   </View>
                   {game.rounds.map(r => {
-  const score = r.scores[player.id];
-  const isDoubled = (score?.rawInput as any)?.doubled;
-  const isFlip7 = (score?.rawInput as any)?.flip7;
-  return (
-    <Text
-      key={r.roundNumber}
-      style={[styles.tableCell, isDoubled && styles.tableCellDoubled, isFlip7 && styles.tableCellFlip7]}
-    >
-      {score?.computed ?? '-'}{isFlip7 ? '★' : ''}
-    </Text>
-  );
-})}
+                    const score = r.scores[player.id];
+                    const isDoubled = (score?.rawInput as any)?.doubled;
+                    const isFlip7 = (score?.rawInput as any)?.flip7;
+                    const isWin = (score?.rawInput as any)?.winner;
+
+                    if (config.inputType === 'wins') {
+                      return (
+                        <Text
+                          key={r.roundNumber}
+                          style={[styles.tableCell, isWin && styles.tableCellWin]}
+                        >
+                          {isWin ? '✓' : ''}
+                        </Text>
+                      );
+                    }
+                    return (
+                      <Text
+                        key={r.roundNumber}
+                        style={[styles.tableCell, isDoubled && styles.tableCellDoubled, isFlip7 && styles.tableCellFlip7]}
+                      >
+                        {score?.computed ?? '-'}{isFlip7 ? '★' : ''}
+                      </Text>
+                    );
+                  })}
                   <Text style={[styles.tableCell, styles.totalCell, styles.totalValue]}>
                     {getCumulative(player.id)}
                   </Text>
@@ -325,100 +438,126 @@ async function handleAbandon() {
         </View>
       )}
 
-      {/* Zone de saisie */}
-      <ScrollView contentContainerStyle={styles.inputs}>
-        <View style={styles.inputsHeader}>
-          <Text style={styles.inputsTitle}>Saisie — Manche {roundNumber}</Text>
-          <Text style={styles.inputsHint}>Total de chaque joueur</Text>
-        </View>
-        {players.map(player => (
-          <View key={player.id} style={styles.inputRow}>
-            <View style={[styles.avatar, { backgroundColor: player.color }]}>
-              <Text style={styles.avatarText}>{player.name[0].toUpperCase()}</Text>
-            </View>
-            <Text style={styles.playerName}>{player.name}</Text>
-            <View style={styles.inputControls}>
-              <TouchableOpacity
-                style={styles.stepBtn}
-                onPress={() => updateInput(
-                  player.id,
-                  String(parseInt(inputs[player.id] || '0', 10) - 1)
-                )}
-              >
-                <Text style={styles.stepBtnText}>−</Text>
-              </TouchableOpacity>
-              <TextInput
-                style={styles.scoreInput}
-                keyboardType="numbers-and-punctuation"
-                value={inputs[player.id]}
-                onChangeText={val => updateInput(player.id, val)}
-                placeholder="0"
-                textAlign="center"
-              />
-              <TouchableOpacity
-                style={styles.stepBtn}
-                onPress={() => updateInput(
-                  player.id,
-                  String(parseInt(inputs[player.id] || '0', 10) + 1)
-                )}
-              >
-                <Text style={styles.stepBtnText}>+</Text>
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.previewTotal}>
-              = {inputs[player.id].trim() !== '' ? getPreview(player.id) : '—'}
-            </Text>
-          </View>
-        ))}
-
-       {/* Flip 7 réalisé — qui a fait le Flip ? */}
-{config.id === 'flip7' && (
-  <View style={styles.firstPlayerSection}>
-    <Text style={styles.firstPlayerLabel}>Flip 7 réalisé par :</Text>
-    <View style={styles.firstPlayerChips}>
-      <TouchableOpacity
-        style={[styles.chip, flip7Achieved === null && styles.chipSelected]}
-        onPress={() => setFlip7Achieved(null as any)}
-      >
-        <Text style={[styles.chipText, flip7Achieved === null && styles.chipTextSelected]}>
-          Personne
-        </Text>
-      </TouchableOpacity>
-      {players.map(p => (
-        <TouchableOpacity
-          key={p.id}
-          style={[styles.chip, flip7Achieved === p.id && styles.chipSelected]}
-          onPress={() => setFlip7Achieved(p.id as any)}
-        >
-          <Text style={[styles.chipText, flip7Achieved === p.id && styles.chipTextSelected]}>
-            {p.name}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  </View>
-)}
-       
-        {/* Sélecteur "A terminé en 1er" pour Skyjo */}
-        {config.id === 'skyjo' && (
+      {/* ── Zone de saisie Trio ── */}
+      {config.inputType === 'wins' ? (
+        <ScrollView contentContainerStyle={styles.inputs}>
           <View style={styles.firstPlayerSection}>
-            <Text style={styles.firstPlayerLabel}>A terminé en 1er :</Text>
+            <Text style={styles.firstPlayerLabel}>Qui a gagné la manche {roundNumber} ?</Text>
             <View style={styles.firstPlayerChips}>
               {players.map(p => (
                 <TouchableOpacity
                   key={p.id}
-                  style={[styles.chip, firstPlayerId === p.id && styles.chipSelected]}
-                  onPress={() => setFirstPlayerId(p.id)}
+                  style={[styles.winChip, winRoundWinner === p.id && styles.winChipSelected]}
+                  onPress={() => setWinRoundWinner(p.id)}
                 >
-                  <Text style={[styles.chipText, firstPlayerId === p.id && styles.chipTextSelected]}>
+                  <View style={[styles.winChipAvatar, { backgroundColor: p.color }]}>
+                    <Text style={styles.winChipAvatarText}>{p.name[0].toUpperCase()}</Text>
+                  </View>
+                  <Text style={[styles.winChipText, winRoundWinner === p.id && styles.winChipTextSelected]}>
                     {p.name}
                   </Text>
+                  {winRoundWinner === p.id && <Text style={styles.winCheck}>✓</Text>}
                 </TouchableOpacity>
               ))}
             </View>
           </View>
-        )}
-      </ScrollView>
+        </ScrollView>
+      ) : (
+        /* ── Zone de saisie numérique ── */
+        <ScrollView contentContainerStyle={styles.inputs}>
+          <View style={styles.inputsHeader}>
+            <Text style={styles.inputsTitle}>Saisie — Manche {roundNumber}</Text>
+            <Text style={styles.inputsHint}>Total de chaque joueur</Text>
+          </View>
+          {players.map(player => (
+            <View key={player.id} style={styles.inputRow}>
+              <View style={[styles.avatar, { backgroundColor: player.color }]}>
+                <Text style={styles.avatarText}>{player.name[0].toUpperCase()}</Text>
+              </View>
+              <Text style={styles.playerName}>{player.name}</Text>
+              <View style={styles.inputControls}>
+                <TouchableOpacity
+                  style={styles.stepBtn}
+                  onPress={() => updateInput(
+                    player.id,
+                    String(parseInt(inputs[player.id] || '0', 10) - 1)
+                  )}
+                >
+                  <Text style={styles.stepBtnText}>−</Text>
+                </TouchableOpacity>
+                <TextInput
+                  style={styles.scoreInput}
+                  keyboardType="numbers-and-punctuation"
+                  value={inputs[player.id]}
+                  onChangeText={val => updateInput(player.id, val)}
+                  placeholder="0"
+                  textAlign="center"
+                />
+                <TouchableOpacity
+                  style={styles.stepBtn}
+                  onPress={() => updateInput(
+                    player.id,
+                    String(parseInt(inputs[player.id] || '0', 10) + 1)
+                  )}
+                >
+                  <Text style={styles.stepBtnText}>+</Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.previewTotal}>
+                = {inputs[player.id].trim() !== '' ? getPreview(player.id) : '—'}
+              </Text>
+            </View>
+          ))}
+
+          {/* Flip 7 — qui a fait le Flip ? */}
+          {config.id === 'flip7' && (
+            <View style={styles.firstPlayerSection}>
+              <Text style={styles.firstPlayerLabel}>Flip 7 réalisé par :</Text>
+              <View style={styles.firstPlayerChips}>
+                <TouchableOpacity
+                  style={[styles.chip, flip7Achieved === null && styles.chipSelected]}
+                  onPress={() => setFlip7Achieved(null as any)}
+                >
+                  <Text style={[styles.chipText, flip7Achieved === null && styles.chipTextSelected]}>
+                    Personne
+                  </Text>
+                </TouchableOpacity>
+                {players.map(p => (
+                  <TouchableOpacity
+                    key={p.id}
+                    style={[styles.chip, flip7Achieved === p.id && styles.chipSelected]}
+                    onPress={() => setFlip7Achieved(p.id as any)}
+                  >
+                    <Text style={[styles.chipText, flip7Achieved === p.id && styles.chipTextSelected]}>
+                      {p.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Sélecteur "A terminé en 1er" pour Skyjo */}
+          {config.id === 'skyjo' && (
+            <View style={styles.firstPlayerSection}>
+              <Text style={styles.firstPlayerLabel}>A terminé en 1er :</Text>
+              <View style={styles.firstPlayerChips}>
+                {players.map(p => (
+                  <TouchableOpacity
+                    key={p.id}
+                    style={[styles.chip, firstPlayerId === p.id && styles.chipSelected]}
+                    onPress={() => setFirstPlayerId(p.id)}
+                  >
+                    <Text style={[styles.chipText, firstPlayerId === p.id && styles.chipTextSelected]}>
+                      {p.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+        </ScrollView>
+      )}
 
       {/* Total en cours pour Papayoo */}
       {config.id === 'papayoo' && (
@@ -435,15 +574,20 @@ async function handleAbandon() {
         </View>
       )}
 
-      {/* Bouton valider */}
-<View style={styles.footer}>
-  <TouchableOpacity style={styles.validateBtn} onPress={handleValidate}>
-    <Text style={styles.validateBtnText}>Valider la manche {roundNumber}</Text>
-  </TouchableOpacity>
-  <TouchableOpacity style={styles.abandonBtn} onPress={handleAbandon}>
-    <Text style={styles.abandonBtnText}>Abandonner la partie</Text>
-  </TouchableOpacity>
-</View>
+      {/* Footer */}
+      <View style={styles.footer}>
+        <TouchableOpacity style={styles.validateBtn} onPress={handleValidate}>
+          <Text style={styles.validateBtnText}>Valider la manche {roundNumber}</Text>
+        </TouchableOpacity>
+        {game.rounds.length > 0 && (
+          <TouchableOpacity style={styles.forceEndBtn} onPress={handleForceEnd}>
+            <Text style={styles.forceEndBtnText}>Terminer la partie</Text>
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity style={styles.abandonBtn} onPress={handleAbandon}>
+          <Text style={styles.abandonBtnText}>Abandonner la partie</Text>
+        </TouchableOpacity>
+      </View>
 
     </SafeAreaView>
   );
@@ -479,6 +623,7 @@ const styles = StyleSheet.create({
   tableCellHeader: { fontWeight: '700', color: '#1a1a1a' },
   tableCellDoubled: { color: RED, fontWeight: '700' },
   tableCellFlip7: { color: '#F39C12', fontWeight: '700' },
+  tableCellWin: { color: '#2ecc71', fontWeight: '700', fontSize: 16 },
   totalCell: { width: 56, fontWeight: '700' },
   totalValue: { color: PURPLE },
   noteRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, paddingHorizontal: 12, paddingBottom: 8 },
@@ -519,15 +664,30 @@ const styles = StyleSheet.create({
   chipSelected: { backgroundColor: PURPLE + '18', borderColor: PURPLE },
   chipText: { fontSize: 14, color: '#555' },
   chipTextSelected: { color: PURPLE, fontWeight: '600' },
+  // Trio win chips
+  winChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#fff', borderRadius: 14, padding: 14,
+    borderWidth: 2, borderColor: 'transparent',
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+  },
+  winChipSelected: { borderColor: '#2ecc71', backgroundColor: '#e1f5ee' },
+  winChipAvatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  winChipAvatarText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  winChipText: { flex: 1, fontSize: 16, color: '#1a1a1a' },
+  winChipTextSelected: { color: '#085041', fontWeight: '600' },
+  winCheck: { fontSize: 18, color: '#2ecc71', fontWeight: '700' },
   footer: {
     padding: 16, backgroundColor: '#fff',
     borderTopWidth: 1, borderTopColor: '#eee',
   },
   validateBtn: {
     backgroundColor: PURPLE, borderRadius: 12,
-    paddingVertical: 16, alignItems: 'center',
+    paddingVertical: 16, alignItems: 'center', marginBottom: 8,
   },
   validateBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  forceEndBtn: { alignItems: 'center', paddingVertical: 8 },
+  forceEndBtnText: { fontSize: 14, color: '#888', fontWeight: '500' },
   papayooTotal: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     backgroundColor: '#fff', borderRadius: 12, padding: 14, marginHorizontal: 16,
@@ -536,21 +696,6 @@ const styles = StyleSheet.create({
   papayooTotalValue: { fontSize: 16, fontWeight: '700' },
   papayooTotalOk: { color: '#2ECC71' },
   papayooTotalBad: { color: '#E74C3C' },
-  flip7Row: {
-  flexDirection: 'row', alignItems: 'center', gap: 12,
-  backgroundColor: '#fff', borderRadius: 12, padding: 14, marginTop: 4,
-},
-flip7Checkbox: {
-  width: 24, height: 24, borderRadius: 6,
-  borderWidth: 2, borderColor: '#e0e0e0',
-  alignItems: 'center', justifyContent: 'center',
-},
-flip7CheckboxChecked: {
-  backgroundColor: PURPLE, borderColor: PURPLE,
-},
-flip7CheckboxTick: { color: '#fff', fontSize: 14, fontWeight: '700' },
-flip7Label: { fontSize: 14, color: '#1a1a1a' },
-
-abandonBtn: { alignItems: 'center', paddingVertical: 10 },
-abandonBtnText: { fontSize: 13, color: '#bbb' },
+  abandonBtn: { alignItems: 'center', paddingVertical: 6 },
+  abandonBtnText: { fontSize: 13, color: '#bbb' },
 });

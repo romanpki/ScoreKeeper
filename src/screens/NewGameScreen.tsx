@@ -1,14 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, TextInput, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { GAME_CONFIGS } from '../games';
-import { getPlayers, addPlayer, upsertGame } from '../storage/StorageService';
+import {
+  getPlayers, addPlayer, upsertGame,
+  getCustomGameConfigs, deleteCustomGameConfig,
+} from '../storage/StorageService';
 import { GameConfig, Player } from '../types';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'NewGame'>;
@@ -27,16 +30,47 @@ export default function NewGameScreen() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [newName, setNewName] = useState('');
   const [targetScore, setTargetScore] = useState<string>('15');
+  const [customConfigs, setCustomConfigs] = useState<GameConfig[]>([]);
 
-  useEffect(() => {
-getPlayers().then(p => setPlayers([...p].sort((a, b) => a.name.localeCompare(b.name))));
-  }, []);
+  // Recharge joueurs + jeux custom à chaque fois que l'écran est visible
+  useFocusEffect(
+    useCallback(() => {
+      async function loadData() {
+        const p = await getPlayers();
+        setPlayers([...p].sort((a, b) => a.name.localeCompare(b.name)));
+        const customs = await getCustomGameConfigs();
+        setCustomConfigs(customs);
+      }
+      loadData();
+    }, [])
+  );
+
+  const allGames = [...GAME_CONFIGS, ...customConfigs];
 
   // ── Étape 1 : sélection du jeu ──────────────────────────────────────────────
 
   function handleSelectGame(game: GameConfig) {
     setSelectedGame(game);
+    if (game.id === 'trio') setTargetScore('3');
+    else setTargetScore('15');
     setStep(2);
+  }
+
+  function handleDeleteCustom(game: GameConfig) {
+    Alert.alert(
+      `Supprimer "${game.name}" ?`,
+      'Ce jeu sera définitivement supprimé.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer', style: 'destructive',
+          onPress: async () => {
+            await deleteCustomGameConfig(game.id);
+            setCustomConfigs(prev => prev.filter(c => c.id !== game.id));
+          },
+        },
+      ]
+    );
   }
 
   // ── Étape 2 : joueurs ────────────────────────────────────────────────────────
@@ -69,19 +103,23 @@ getPlayers().then(p => setPlayers([...p].sort((a, b) => a.name.localeCompare(b.n
       );
       return;
     }
+
+    const needsTargetScore = selectedGame.id === 'odin' || selectedGame.id === 'trio';
+    const defaultTarget = selectedGame.id === 'trio' ? 3 : 15;
+
     const game = {
-  id: generateId(),
-  gameConfigId: selectedGame.id,
-  playerIds: selectedIds,
-  rounds: [],
-  status: 'playing' as const,
-  winnerId: null,
-  startedAt: Date.now(),
-  finishedAt: null,
-  metadata: {
-    targetScore: selectedGame.id === 'odin' ? (parseInt(targetScore, 10) || 15) : null,
-  },
-};
+      id: generateId(),
+      gameConfigId: selectedGame.id,
+      playerIds: selectedIds,
+      rounds: [],
+      status: 'playing' as const,
+      winnerId: null,
+      startedAt: Date.now(),
+      finishedAt: null,
+      metadata: {
+        targetScore: needsTargetScore ? (parseInt(targetScore, 10) || defaultTarget) : null,
+      },
+    };
     await upsertGame(game);
     navigation.replace('Game', { gameId: game.id });
   }
@@ -99,21 +137,50 @@ getPlayers().then(p => setPlayers([...p].sort((a, b) => a.name.localeCompare(b.n
           <View style={{ width: 60 }} />
         </View>
         <ScrollView contentContainerStyle={styles.grid}>
-          {GAME_CONFIGS.map(game => (
-            <TouchableOpacity
-              key={game.id}
-              style={styles.gameCard}
-              onPress={() => handleSelectGame(game)}
-            >
-              <Text style={styles.gameName}>{game.name}</Text>
-              <Text style={styles.gameMeta}>
-                {game.minPlayers}–{game.maxPlayers} joueurs
-              </Text>
-              <Text style={styles.gameMeta}>
-                {game.scoreDirection === 'low' ? '↓ Le moins possible' : '↑ Le plus possible'}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {allGames.map(game => {
+            const isCustom = !!(game.specialRules as any)?.isCustom;
+            return (
+              <TouchableOpacity
+                key={game.id}
+                style={styles.gameCard}
+                onPress={() => handleSelectGame(game)}
+                onLongPress={isCustom ? () => handleDeleteCustom(game) : undefined}
+              >
+                {isCustom && (
+                  <TouchableOpacity
+                    style={styles.deleteBtn}
+                    onPress={() => handleDeleteCustom(game)}
+                    hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                  >
+                    <Text style={styles.deleteBtnText}>×</Text>
+                  </TouchableOpacity>
+                )}
+                <Text style={styles.gameName}>{game.name}</Text>
+                <Text style={styles.gameMeta}>
+                  {game.minPlayers}–{game.maxPlayers} joueurs
+                </Text>
+                <Text style={styles.gameMeta}>
+                  {game.inputType === 'wins'
+                    ? 'Tracker de victoires'
+                    : game.scoreDirection === 'low' ? '↓ Le moins possible' : '↑ Le plus possible'}
+                </Text>
+                {isCustom && (
+                  <View style={styles.customBadge}>
+                    <Text style={styles.customBadgeText}>Perso</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+
+          {/* Carte "Créer un jeu" */}
+          <TouchableOpacity
+            style={[styles.gameCard, styles.addGameCard]}
+            onPress={() => navigation.navigate('AddGame')}
+          >
+            <Text style={styles.addGameIcon}>+</Text>
+            <Text style={styles.addGameText}>Créer un jeu</Text>
+          </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
     );
@@ -124,6 +191,8 @@ getPlayers().then(p => setPlayers([...p].sort((a, b) => a.name.localeCompare(b.n
   const canStart = selectedGame
     && selectedIds.length >= selectedGame.minPlayers
     && selectedIds.length <= selectedGame.maxPlayers;
+
+  const needsTargetScore = selectedGame?.id === 'odin' || selectedGame?.id === 'trio';
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -137,18 +206,20 @@ getPlayers().then(p => setPlayers([...p].sort((a, b) => a.name.localeCompare(b.n
 
       <ScrollView contentContainerStyle={styles.scroll}>
 
-      {/* Points cible pour Odin */}
-{selectedGame?.id === 'odin' && (
-  <View style={styles.targetScoreRow}>
-    <Text style={styles.targetScoreLabel}>Points cible :</Text>
-    <TextInput
-      style={styles.targetScoreInput}
-      keyboardType="number-pad"
-      value={targetScore}
-      onChangeText={setTargetScore}
-    />
-  </View>
-)}
+        {/* Points / Victoires cible (Odin & Trio) */}
+        {needsTargetScore && (
+          <View style={styles.targetScoreRow}>
+            <Text style={styles.targetScoreLabel}>
+              {selectedGame?.id === 'trio' ? 'Victoires pour gagner :' : 'Points cible :'}
+            </Text>
+            <TextInput
+              style={styles.targetScoreInput}
+              keyboardType="number-pad"
+              value={targetScore}
+              onChangeText={setTargetScore}
+            />
+          </View>
+        )}
 
         {/* Ajout rapide */}
         <View style={styles.addRow}>
@@ -225,6 +296,24 @@ const styles = StyleSheet.create({
   },
   gameName: { fontSize: 17, fontWeight: '700', color: '#1a1a1a' },
   gameMeta: { fontSize: 12, color: '#888' },
+  deleteBtn: {
+    position: 'absolute', top: 8, right: 10,
+    width: 22, height: 22, alignItems: 'center', justifyContent: 'center',
+  },
+  deleteBtnText: { fontSize: 20, color: '#bbb', lineHeight: 22 },
+  customBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: PURPLE + '18', borderRadius: 6,
+    paddingHorizontal: 6, paddingVertical: 2, marginTop: 2,
+  },
+  customBadgeText: { fontSize: 10, color: PURPLE, fontWeight: '600' },
+  addGameCard: {
+    borderStyle: 'dashed', borderWidth: 1.5, borderColor: '#ccc',
+    backgroundColor: '#fafafa', alignItems: 'center', justifyContent: 'center',
+    minHeight: 90,
+  },
+  addGameIcon: { fontSize: 28, color: '#bbb', lineHeight: 34 },
+  addGameText: { fontSize: 13, color: '#bbb', fontWeight: '500' },
   scroll: { padding: 16, gap: 10 },
   addRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
   input: {
@@ -256,15 +345,14 @@ const styles = StyleSheet.create({
   startBtn: { backgroundColor: PURPLE, borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
   startBtnDisabled: { backgroundColor: '#ccc' },
   startBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-
   targetScoreRow: {
-  flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-  backgroundColor: '#fff', borderRadius: 12, padding: 14,
-},
-targetScoreLabel: { fontSize: 15, color: '#1a1a1a', fontWeight: '500' },
-targetScoreInput: {
-  width: 70, height: 40, borderRadius: 8,
-  borderWidth: 1, borderColor: PURPLE,
-  textAlign: 'center', fontSize: 16, fontWeight: '600', color: PURPLE,
-},
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: '#fff', borderRadius: 12, padding: 14,
+  },
+  targetScoreLabel: { fontSize: 15, color: '#1a1a1a', fontWeight: '500' },
+  targetScoreInput: {
+    width: 70, height: 40, borderRadius: 8,
+    borderWidth: 1, borderColor: PURPLE,
+    textAlign: 'center', fontSize: 16, fontWeight: '600', color: PURPLE,
+  },
 });

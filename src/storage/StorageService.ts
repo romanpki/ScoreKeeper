@@ -1,10 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Player, Game } from '../types';
+import { Player, Game, GameConfig } from '../types';
+import { GAME_CONFIGS } from '../games';
 import ICloudKVS from './ICloudKVS';
 
 const KEYS = {
   PLAYERS: 'scorekeeper_players',
   GAMES: 'scorekeeper_games',
+  CUSTOM_GAME_CONFIGS: 'scorekeeper_custom_game_configs',
 };
 
 // ── Sync iCloud ───────────────────────────────────────────────────────────────
@@ -135,4 +137,32 @@ export async function getCurrentGames(): Promise<Game[]> {
   const games = await getGames();
   return games.filter(g => g.status === 'playing')
     .sort((a, b) => b.startedAt - a.startedAt);
+}
+
+// ── Jeux custom ───────────────────────────────────────────────────────────────
+
+export async function getCustomGameConfigs(): Promise<GameConfig[]> {
+  const raw = await AsyncStorage.getItem(KEYS.CUSTOM_GAME_CONFIGS);
+  return raw ? JSON.parse(raw) : [];
+}
+
+export async function saveCustomGameConfigs(configs: GameConfig[]): Promise<void> {
+  const json = JSON.stringify(configs);
+  await AsyncStorage.setItem(KEYS.CUSTOM_GAME_CONFIGS, json);
+  await writeToCloud(KEYS.CUSTOM_GAME_CONFIGS, json);
+}
+
+export async function addCustomGameConfig(config: GameConfig): Promise<void> {
+  const configs = await getCustomGameConfigs();
+  await saveCustomGameConfigs([...configs, config]);
+}
+
+export async function deleteCustomGameConfig(id: string): Promise<void> {
+  const configs = await getCustomGameConfigs();
+  await saveCustomGameConfigs(configs.filter(c => c.id !== id));
+}
+
+export async function getAllGameConfigs(): Promise<GameConfig[]> {
+  const customs = await getCustomGameConfigs();
+  return [...GAME_CONFIGS, ...customs];
 }
