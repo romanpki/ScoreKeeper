@@ -79,11 +79,11 @@ export const GAME_CONFIGS: GameConfig[] = [
     minPlayers: 3,
     maxPlayers: 6,
     scoreDirection: 'high',
-    endCondition: 'fixed',
-    endValue: null,
+    endCondition: 'threshold',
+    endValue: 3,
     orderMatters: false,
-    inputType: 'simple',
-    specialRules: { winTracker: true },
+    inputType: 'wins',
+    specialRules: {},
   },
 ];
 

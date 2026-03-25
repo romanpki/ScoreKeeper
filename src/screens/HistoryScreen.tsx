@@ -6,9 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { getGames, getPlayers } from '../storage/StorageService';
-import { getGameConfig, GAME_CONFIGS } from '../games';
-import { Game, Player } from '../types';
+import { getGames, getPlayers, getAllGameConfigs } from '../storage/StorageService';
+import { Game, GameConfig, Player } from '../types';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'History'>;
 
@@ -36,21 +35,26 @@ export default function HistoryScreen() {
   const navigation = useNavigation<NavProp>();
   const [games, setGames] = useState<Game[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
+  const [allConfigs, setAllConfigs] = useState<GameConfig[]>([]);
   const [filter, setFilter] = useState<string | null>(null);
 
   useEffect(() => {
-  const load = async () => {
-    const allGames = await getGames();
-    const allPlayers = await getPlayers();
-    setGames(allGames.filter(g => g.status === 'finished').sort((a, b) =>
-      (b.finishedAt ?? 0) - (a.finishedAt ?? 0)
-    ));
-    setPlayers(allPlayers);
-  };
-  load();
-  const unsubscribe = navigation.addListener('focus', load);
-  return unsubscribe;
-}, [navigation]);
+    const load = async () => {
+      const [allGames, allPlayers, configs] = await Promise.all([
+        getGames(),
+        getPlayers(),
+        getAllGameConfigs(),
+      ]);
+      setGames(allGames.filter(g => g.status === 'finished').sort((a, b) =>
+        (b.finishedAt ?? 0) - (a.finishedAt ?? 0)
+      ));
+      setPlayers(allPlayers);
+      setAllConfigs(configs);
+    };
+    load();
+    const unsubscribe = navigation.addListener('focus', load);
+    return unsubscribe;
+  }, [navigation]);
 
   const filteredGames = filter ? games.filter(g => g.gameConfigId === filter) : games;
 
@@ -87,7 +91,7 @@ export default function HistoryScreen() {
             >
               <Text style={[styles.filterText, filter === null && styles.filterTextActive]}>Toutes</Text>
             </TouchableOpacity>
-            {GAME_CONFIGS.map(g => (
+            {allConfigs.map(g => (
               <TouchableOpacity
                 key={g.id}
                 style={[styles.filterChip, filter === g.id && styles.filterChipActive]}
@@ -137,7 +141,7 @@ export default function HistoryScreen() {
             <Text style={styles.sectionLabel}>PARTIES RÉCENTES</Text>
             <View style={styles.gamesList}>
               {filteredGames.map(game => {
-                const config = getGameConfig(game.gameConfigId);
+                const config = allConfigs.find(c => c.id === game.gameConfigId);
                 const winner = players.find(p => p.id === game.winnerId);
                 const colors = GAME_COLORS[game.gameConfigId] ?? { bg: '#f0f0f0', text: '#444' };
                 const others = game.playerIds

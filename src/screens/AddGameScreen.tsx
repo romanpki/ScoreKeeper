@@ -1,0 +1,254 @@
+import React, { useState } from 'react';
+import {
+  View, Text, StyleSheet, TouchableOpacity,
+  TextInput, Alert, ScrollView,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/AppNavigator';
+import { addCustomGameConfig } from '../storage/StorageService';
+import { GameConfig } from '../types';
+
+type NavProp = NativeStackNavigationProp<RootStackParamList, 'AddGame'>;
+
+function generateId(): string {
+  return 'custom_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
+export default function AddGameScreen() {
+  const navigation = useNavigation<NavProp>();
+  const [name, setName] = useState('');
+  const [minPlayers, setMinPlayers] = useState(2);
+  const [maxPlayers, setMaxPlayers] = useState(6);
+  const [direction, setDirection] = useState<'high' | 'low'>('high');
+  const [endType, setEndType] = useState<'threshold' | 'fixed'>('threshold');
+  const [endValue, setEndValue] = useState('100');
+
+  async function handleCreate() {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      Alert.alert('Nom manquant', 'Donne un nom à ton jeu.');
+      return;
+    }
+    if (maxPlayers < minPlayers) {
+      Alert.alert('Joueurs invalides', 'Le maximum doit être ≥ au minimum.');
+      return;
+    }
+    const ev = parseInt(endValue, 10);
+    if (isNaN(ev) || ev <= 0) {
+      Alert.alert('Valeur invalide', 'La valeur de fin doit être un nombre positif.');
+      return;
+    }
+
+    const config: GameConfig = {
+      id: generateId(),
+      name: trimmedName,
+      minPlayers,
+      maxPlayers,
+      scoreDirection: direction,
+      endCondition: endType,
+      endValue: ev,
+      orderMatters: false,
+      inputType: 'simple',
+      specialRules: { isCustom: true },
+    };
+
+    await addCustomGameConfig(config);
+    navigation.goBack();
+  }
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={styles.back}>← Retour</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Nouveau jeu</Text>
+        <View style={{ width: 60 }} />
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scroll}>
+
+        {/* Nom */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Nom du jeu</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="Ex : 6 qui prend !"
+            placeholderTextColor="#bbb"
+            value={name}
+            onChangeText={setName}
+            returnKeyType="done"
+          />
+        </View>
+
+        {/* Min / Max joueurs */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Nombre de joueurs</Text>
+          <View style={styles.steppersRow}>
+            <View style={styles.stepperGroup}>
+              <Text style={styles.stepperLabel}>Minimum</Text>
+              <View style={styles.stepper}>
+                <TouchableOpacity
+                  style={styles.stepBtn}
+                  onPress={() => setMinPlayers(v => Math.max(2, v - 1))}
+                >
+                  <Text style={styles.stepBtnText}>−</Text>
+                </TouchableOpacity>
+                <Text style={styles.stepValue}>{minPlayers}</Text>
+                <TouchableOpacity
+                  style={styles.stepBtn}
+                  onPress={() => setMinPlayers(v => Math.min(maxPlayers, v + 1))}
+                >
+                  <Text style={styles.stepBtnText}>+</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            <View style={styles.stepperGroup}>
+              <Text style={styles.stepperLabel}>Maximum</Text>
+              <View style={styles.stepper}>
+                <TouchableOpacity
+                  style={styles.stepBtn}
+                  onPress={() => setMaxPlayers(v => Math.max(minPlayers, v - 1))}
+                >
+                  <Text style={styles.stepBtnText}>−</Text>
+                </TouchableOpacity>
+                <Text style={styles.stepValue}>{maxPlayers}</Text>
+                <TouchableOpacity
+                  style={styles.stepBtn}
+                  onPress={() => setMaxPlayers(v => Math.min(20, v + 1))}
+                >
+                  <Text style={styles.stepBtnText}>+</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Direction du score */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Objectif du score</Text>
+          <View style={styles.toggleRow}>
+            <TouchableOpacity
+              style={[styles.toggleBtn, direction === 'high' && styles.toggleBtnActive]}
+              onPress={() => setDirection('high')}
+            >
+              <Text style={[styles.toggleText, direction === 'high' && styles.toggleTextActive]}>
+                ↑ Le + haut gagne
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.toggleBtn, direction === 'low' && styles.toggleBtnActive]}
+              onPress={() => setDirection('low')}
+            >
+              <Text style={[styles.toggleText, direction === 'low' && styles.toggleTextActive]}>
+                ↓ Le + bas gagne
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Fin de partie */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Fin de partie</Text>
+          <View style={styles.toggleRow}>
+            <TouchableOpacity
+              style={[styles.toggleBtn, endType === 'threshold' && styles.toggleBtnActive]}
+              onPress={() => setEndType('threshold')}
+            >
+              <Text style={[styles.toggleText, endType === 'threshold' && styles.toggleTextActive]}>
+                Premier à X pts
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.toggleBtn, endType === 'fixed' && styles.toggleBtnActive]}
+              onPress={() => setEndType('fixed')}
+            >
+              <Text style={[styles.toggleText, endType === 'fixed' && styles.toggleTextActive]}>
+                Après X manches
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.endValueRow}>
+            <Text style={styles.endValueLabel}>
+              {endType === 'threshold' ? 'Points pour gagner :' : 'Nombre de manches :'}
+            </Text>
+            <TextInput
+              style={styles.endValueInput}
+              keyboardType="number-pad"
+              value={endValue}
+              onChangeText={setEndValue}
+            />
+          </View>
+        </View>
+
+      </ScrollView>
+
+      <View style={styles.footer}>
+        <TouchableOpacity style={styles.createBtn} onPress={handleCreate}>
+          <Text style={styles.createBtnText}>Créer le jeu</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const PURPLE = '#6c63ff';
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: '#f7f7f7' },
+  header: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 16, paddingVertical: 14,
+    backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee',
+  },
+  back: { fontSize: 15, color: PURPLE, width: 60 },
+  headerTitle: { fontSize: 17, fontWeight: '700', color: '#1a1a1a' },
+  scroll: { padding: 16, gap: 12 },
+  section: {
+    backgroundColor: '#fff', borderRadius: 14, padding: 16, gap: 12,
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 1,
+  },
+  sectionLabel: { fontSize: 13, fontWeight: '600', color: '#888', letterSpacing: 0.3 },
+  textInput: {
+    borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 12,
+    fontSize: 16, color: '#1a1a1a', backgroundColor: '#fafafa',
+  },
+  steppersRow: { flexDirection: 'row', gap: 16 },
+  stepperGroup: { flex: 1, gap: 8 },
+  stepperLabel: { fontSize: 13, color: '#888' },
+  stepper: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  stepBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: '#f0f0f0', alignItems: 'center', justifyContent: 'center',
+  },
+  stepBtnText: { fontSize: 20, color: '#333', lineHeight: 24 },
+  stepValue: { fontSize: 20, fontWeight: '700', color: '#1a1a1a', minWidth: 28, textAlign: 'center' },
+  toggleRow: { flexDirection: 'row', gap: 8 },
+  toggleBtn: {
+    flex: 1, paddingVertical: 10, borderRadius: 10,
+    backgroundColor: '#f0f0f0', alignItems: 'center',
+    borderWidth: 1, borderColor: '#e0e0e0',
+  },
+  toggleBtnActive: { backgroundColor: PURPLE + '18', borderColor: PURPLE },
+  toggleText: { fontSize: 14, color: '#555' },
+  toggleTextActive: { color: PURPLE, fontWeight: '600' },
+  endValueRow: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between', paddingTop: 4,
+  },
+  endValueLabel: { fontSize: 15, color: '#1a1a1a' },
+  endValueInput: {
+    width: 80, height: 42, borderRadius: 10,
+    borderWidth: 1, borderColor: PURPLE,
+    textAlign: 'center', fontSize: 18, fontWeight: '700', color: PURPLE,
+  },
+  footer: {
+    padding: 16, backgroundColor: '#fff',
+    borderTopWidth: 1, borderTopColor: '#eee',
+  },
+  createBtn: { backgroundColor: PURPLE, borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
+  createBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+});

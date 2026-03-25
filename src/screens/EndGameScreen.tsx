@@ -7,9 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { getGameById, getPlayers, upsertGame } from '../storage/StorageService';
-import { getGameConfig } from '../games';
-import { Game, Player } from '../types';
+import { getGameById, getPlayers, upsertGame, getAllGameConfigs } from '../storage/StorageService';
+import { Game, GameConfig, Player } from '../types';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'EndGame'>;
 type RouteType = RouteProp<RootStackParamList, 'EndGame'>;
@@ -34,6 +33,7 @@ export default function EndGameScreen() {
   const { gameId } = route.params;
 
   const [game, setGame] = useState<Game | null>(null);
+  const [config, setConfig] = useState<GameConfig | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
 
   useEffect(() => {
@@ -41,15 +41,15 @@ export default function EndGameScreen() {
       const g = await getGameById(gameId);
       if (!g) return;
       setGame(g);
+      const allConfigs = await getAllGameConfigs();
+      setConfig(allConfigs.find(c => c.id === g.gameConfigId) ?? null);
       const all = await getPlayers();
       setPlayers(all.filter(p => g.playerIds.includes(p.id)));
     };
     load();
   }, [gameId]);
 
-  if (!game) return null;
-  const config = getGameConfig(game.gameConfigId);
-  if (!config) return null;
+  if (!game || !config) return null;
 
   // ── Calcul des totaux et classement ──────────────────────────────────────────
 
@@ -121,16 +121,21 @@ export default function EndGameScreen() {
       winnerId: null,
       startedAt: Date.now(),
       finishedAt: null,
-      metadata: {},
+      metadata: game!.metadata, // Préserve targetScore (Trio, Odin, etc.)
     };
     await upsertGame(newGame);
     navigation.replace('Game', { gameId: newGame.id });
   }
 
   async function handleShare() {
-    const lines = ranked.map((r, i) =>
-      `${ranks[r.id]}. ${r.player?.name ?? '?'} — ${r.total} pts`
-    );
+    const unit = config.inputType === 'wins' ? 'victoire' : 'pt';
+    const lines = ranked.map((r) => {
+      const score = r.total;
+      const label = config.inputType === 'wins'
+        ? `${score} ${score > 1 ? 'victoires' : 'victoire'}`
+        : `${score} pts`;
+      return `${ranks[r.id]}. ${r.player?.name ?? '?'} — ${label}`;
+    });
     await Share.share({
       message: `${config.name} — ${game.rounds.length} ${game.rounds.length > 1 ? 'manches' : 'manche'}\n${lines.join('\n')}`,
     });
@@ -180,7 +185,9 @@ export default function EndGameScreen() {
                   {entry.player?.name ?? '?'}
                 </Text>
                 <Text style={[styles.podiumScore, isWinner && styles.podiumScoreWinner]}>
-                  {entry.total} pts
+                  {config.inputType === 'wins'
+                    ? `${entry.total} ${entry.total > 1 ? 'victoires' : 'victoire'}`
+                    : `${entry.total} pts`}
                 </Text>
                 <View style={[styles.podiumBar, { height }, isWinner && styles.podiumBarWinner]}>
                   <Text style={[styles.podiumRank, isWinner && styles.podiumRankWinner]}>
@@ -226,6 +233,14 @@ export default function EndGameScreen() {
                 {game.rounds.map(r => {
                   const score = r.scores[entry.id];
                   const doubled = (score?.rawInput as any)?.doubled;
+                  const isWinRound = (score?.rawInput as any)?.winner;
+                  if (config.inputType === 'wins') {
+                    return (
+                      <Text key={r.roundNumber} style={[styles.cell, isWinRound && styles.cellWinRound, ranks[entry.id] === 1 && styles.cellWinner]}>
+                        {isWinRound ? '✓' : ''}
+                      </Text>
+                    );
+                  }
                   return (
                     <Text key={r.roundNumber} style={[styles.cell, doubled && styles.cellDoubled, ranks[entry.id] === 1 && styles.cellWinner]}>
                       {score?.computed ?? '-'}
@@ -240,34 +255,38 @@ export default function EndGameScreen() {
           </View>
         </ScrollView>
 
-        {/* Stats */}
-        <Text style={styles.sectionTitle}>Stats de la partie</Text>
-        <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Meilleure manche</Text>
-            <Text style={styles.statValue}>
-              {players.find(p => p.id === bestScore.playerId)?.name} M{bestScore.round} ({bestScore.score})
-            </Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Pire manche</Text>
-            <Text style={[styles.statValue, styles.statBad]}>
-              {players.find(p => p.id === worstScore.playerId)?.name} M{worstScore.round} ({worstScore.score})
-            </Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Moyenne / manche</Text>
-            <Text style={styles.statValue}>{avg.toFixed(1)} pts</Text>
-          </View>
-          {config.id === 'skyjo' && (
-            <View style={styles.statCard}>
-              <Text style={styles.statLabel}>Doublés infligés</Text>
-              <Text style={styles.statValue}>
-                {doubledCount > 0 ? `${doubledCount} (${firstDoubled})` : 'Aucun'}
-              </Text>
+        {/* Stats — masquées pour Trio (scores binaires 0/1 non significatifs) */}
+        {config.inputType !== 'wins' && (
+          <>
+            <Text style={styles.sectionTitle}>Stats de la partie</Text>
+            <View style={styles.statsGrid}>
+              <View style={styles.statCard}>
+                <Text style={styles.statLabel}>Meilleure manche</Text>
+                <Text style={styles.statValue}>
+                  {players.find(p => p.id === bestScore.playerId)?.name} M{bestScore.round} ({bestScore.score})
+                </Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statLabel}>Pire manche</Text>
+                <Text style={[styles.statValue, styles.statBad]}>
+                  {players.find(p => p.id === worstScore.playerId)?.name} M{worstScore.round} ({worstScore.score})
+                </Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statLabel}>Moyenne / manche</Text>
+                <Text style={styles.statValue}>{avg.toFixed(1)} pts</Text>
+              </View>
+              {config.id === 'skyjo' && (
+                <View style={styles.statCard}>
+                  <Text style={styles.statLabel}>Doublés infligés</Text>
+                  <Text style={styles.statValue}>
+                    {doubledCount > 0 ? `${doubledCount} (${firstDoubled})` : 'Aucun'}
+                  </Text>
+                </View>
+              )}
             </View>
-          )}
-        </View>
+          </>
+        )}
 
         {/* Boutons */}
         <View style={styles.btnRow}>
@@ -349,6 +368,7 @@ const styles = StyleSheet.create({
   cellWinner: { color: '#085041', fontWeight: '500' },
   cellWorse: { color: '#1a1a1a' },
   cellDoubled: { color: RED, fontWeight: '500' },
+  cellWinRound: { color: '#085041', fontWeight: '700' },
   nameCol: { width: 60, textAlign: 'left', paddingLeft: 6 },
   totCol: { width: 36 },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

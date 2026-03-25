@@ -11,7 +11,7 @@ export interface Player {
 
 export type ScoreDirection = 'low' | 'high';
 export type EndCondition = 'threshold' | 'fixed' | 'rounds';
-export type InputType = 'simple' | 'bid' | 'bonus';
+export type InputType = 'simple' | 'bid' | 'bonus' | 'wins';
 
 export interface GameConfig {
   id: string;
