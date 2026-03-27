@@ -13,7 +13,7 @@ import AddGameScreen from '../screens/AddGameScreen';
 
 export type RootStackParamList = {
   Home: undefined;
-  NewGame: undefined;
+  NewGame: { preselectedGameId?: string } | undefined;
   Game: { gameId: string };
   EndGame: { gameId: string };
   History: undefined;

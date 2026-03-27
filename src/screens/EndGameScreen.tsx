@@ -316,9 +316,17 @@ export default function EndGameScreen() {
 >
   <Text style={styles.btnSecondaryFullText}>Voir l'historique</Text>
 </TouchableOpacity>
-        <TouchableOpacity style={styles.btnOutline} onPress={handleRevanche}>
-          <Text style={styles.btnOutlineText}>Revanche avec les mêmes joueurs</Text>
-        </TouchableOpacity>
+        <View style={styles.btnRow}>
+          <TouchableOpacity style={styles.btnOutlineHalf} onPress={handleRevanche}>
+            <Text style={styles.btnOutlineText}>Revanche (mêmes joueurs)</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.btnOutlineHalf}
+            onPress={() => navigation.navigate('NewGame', { preselectedGameId: game!.gameConfigId })}
+          >
+            <Text style={styles.btnOutlineText}>Rejouer (autres joueurs)</Text>
+          </TouchableOpacity>
+        </View>
 
       </ScrollView>
     </SafeAreaView>
@@ -414,5 +422,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', borderWidth: 1, borderColor: PURPLE + '66',
     alignItems: 'center',
   },
-  btnOutlineText: { color: PURPLE, fontSize: 14, fontWeight: '500' },
+  btnOutlineHalf: {
+    flex: 1, borderRadius: 12, paddingVertical: 12,
+    backgroundColor: '#fff', borderWidth: 1, borderColor: PURPLE + '66',
+    alignItems: 'center',
+  },
+  btnOutlineText: { color: PURPLE, fontSize: 13, fontWeight: '500' },
 });

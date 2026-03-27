@@ -1,22 +1,24 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, TextInput, Alert,
+  ScrollView, TextInput, Alert, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { GAME_CONFIGS } from '../games';
 import {
   getPlayers, addPlayer, upsertGame,
-  getCustomGameConfigs, deleteCustomGameConfig,
+  getCustomGameConfigs, deleteCustomGameConfig, updatePlayer,
 } from '../storage/StorageService';
 import { GameConfig, Player } from '../types';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'NewGame'>;
+type RouteType = RouteProp<RootStackParamList, 'NewGame'>;
 
-const COLORS = ['#E74C3C','#3498DB','#2ECC71','#F39C12','#9B59B6','#1ABC9C','#E67E22','#E91E63'];
+const COLORS = ['#E74C3C','#3498DB','#2ECC71','#F39C12','#9B59B6','#1ABC9C','#E67E22','#E91E63',
+                '#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7','#DDA0DD','#98D8C8','#F7DC6F'];
 
 function generateId(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -24,6 +26,9 @@ function generateId(): string {
 
 export default function NewGameScreen() {
   const navigation = useNavigation<NavProp>();
+  const route = useRoute<RouteType>();
+  const preselectedGameId = route.params?.preselectedGameId;
+
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedGame, setSelectedGame] = useState<GameConfig | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -31,6 +36,7 @@ export default function NewGameScreen() {
   const [newName, setNewName] = useState('');
   const [targetScore, setTargetScore] = useState<string>('15');
   const [customConfigs, setCustomConfigs] = useState<GameConfig[]>([]);
+  const [colorPickerPlayerId, setColorPickerPlayerId] = useState<string | null>(null);
 
   // Recharge joueurs + jeux custom à chaque fois que l'écran est visible
   useFocusEffect(
@@ -40,9 +46,19 @@ export default function NewGameScreen() {
         setPlayers([...p].sort((a, b) => a.name.localeCompare(b.name)));
         const customs = await getCustomGameConfigs();
         setCustomConfigs(customs);
+        if (preselectedGameId) {
+          const allGames = [...GAME_CONFIGS, ...customs];
+          const found = allGames.find(g => g.id === preselectedGameId);
+          if (found) {
+            setSelectedGame(found);
+            if (found.id === 'trio') setTargetScore('3');
+            else setTargetScore('15');
+            setStep(2);
+          }
+        }
       }
       loadData();
-    }, [])
+    }, [preselectedGameId])
   );
 
   const allGames = [...GAME_CONFIGS, ...customConfigs];
@@ -91,6 +107,15 @@ export default function NewGameScreen() {
     setPlayers(updated);
     setSelectedIds(prev => [...prev, player.id]);
     setNewName('');
+  }
+
+  async function handleColorChange(playerId: string, color: string) {
+    const player = players.find(p => p.id === playerId);
+    if (!player) return;
+    const updated = { ...player, color };
+    await updatePlayer(updated);
+    setPlayers(prev => prev.map(p => p.id === playerId ? updated : p));
+    setColorPickerPlayerId(null);
   }
 
   async function handleStart() {
@@ -245,10 +270,28 @@ export default function NewGameScreen() {
               style={[styles.playerRow, selected && styles.playerRowSelected]}
               onPress={() => togglePlayer(player.id)}
             >
-              <View style={[styles.avatar, { backgroundColor: player.color }]}>
-                <Text style={styles.avatarText}>{player.name[0].toUpperCase()}</Text>
+              <TouchableOpacity
+                onPress={() => setColorPickerPlayerId(colorPickerPlayerId === player.id ? null : player.id)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <View style={[styles.avatar, { backgroundColor: player.color }]}>
+                  <Text style={styles.avatarText}>{player.name[0].toUpperCase()}</Text>
+                </View>
+              </TouchableOpacity>
+              <View style={styles.playerInfo}>
+                <Text style={styles.playerName}>{player.name}</Text>
+                {colorPickerPlayerId === player.id && (
+                  <View style={styles.colorPicker}>
+                    {COLORS.map(c => (
+                      <TouchableOpacity
+                        key={c}
+                        style={[styles.colorDot, { backgroundColor: c }, player.color === c && styles.colorDotSelected]}
+                        onPress={() => handleColorChange(player.id, c)}
+                      />
+                    ))}
+                  </View>
+                )}
               </View>
-              <Text style={styles.playerName}>{player.name}</Text>
               {selected && <Text style={styles.check}>✓</Text>}
             </TouchableOpacity>
           );
@@ -334,7 +377,11 @@ const styles = StyleSheet.create({
   playerRowSelected: { borderColor: PURPLE, backgroundColor: PURPLE + '0D' },
   avatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  playerName: { flex: 1, fontSize: 16, color: '#1a1a1a' },
+  playerInfo: { flex: 1 },
+  playerName: { fontSize: 16, color: '#1a1a1a' },
+  colorPicker: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+  colorDot: { width: 22, height: 22, borderRadius: 11 },
+  colorDotSelected: { borderWidth: 2.5, borderColor: '#1a1a1a', transform: [{ scale: 1.2 }] },
   check: { fontSize: 18, color: PURPLE, fontWeight: '700' },
   empty: { textAlign: 'center', color: '#aaa', marginTop: 32, fontSize: 15 },
   footer: {

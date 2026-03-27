@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput,
+  View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert,
 } from 'react-native';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -93,6 +95,34 @@ export default function HistoryScreen() {
     return result;
   })();
 
+  // ── Export CSV ─────────────────────────────────────────────────────────────
+
+  async function handleExportCSV() {
+    if (games.length === 0) {
+      Alert.alert('Aucune partie', 'Il n\'y a rien à exporter.');
+      return;
+    }
+    const isSharingAvailable = await Sharing.isAvailableAsync();
+    if (!isSharingAvailable) {
+      Alert.alert('Non disponible', 'Le partage n\'est pas disponible sur cet appareil.');
+      return;
+    }
+    const header = 'Jeu,Date,Joueurs,Gagnant,Manches,Durée\n';
+    const rows = games.map(g => {
+      const name = allConfigs.find(c => c.id === g.gameConfigId)?.name ?? '';
+      const date = new Date(g.finishedAt ?? 0).toLocaleDateString('fr-FR');
+      const playerNames = g.playerIds.map(id => players.find(p => p.id === id)?.name ?? '?').join(' / ');
+      const winner = players.find(p => p.id === g.winnerId)?.name ?? '?';
+      const rounds = g.rounds.length;
+      const duration = g.finishedAt ? formatDuration(g.startedAt, g.finishedAt) : '';
+      return `"${name}","${date}","${playerNames}","${winner}",${rounds},"${duration}"`;
+    }).join('\n');
+    const csv = header + rows;
+    const path = `${FileSystem.cacheDirectory}scorekeeper_export.csv`;
+    await FileSystem.writeAsStringAsync(path, csv, { encoding: FileSystem.EncodingType.UTF8 });
+    await Sharing.shareAsync(path, { mimeType: 'text/csv', dialogTitle: 'Exporter l\'historique' });
+  }
+
   // ── Classement global ──────────────────────────────────────────────────────
 
   const playerStats = players.map(p => {
@@ -115,6 +145,9 @@ export default function HistoryScreen() {
             <Text style={styles.back}>‹</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Historique</Text>
+          <TouchableOpacity onPress={handleExportCSV}>
+            <Text style={styles.exportBtn}>↑ CSV</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Recherche */}
@@ -323,6 +356,7 @@ const styles = StyleSheet.create({
   winnerScore: { fontSize: 12, fontWeight: '500', color: '#1a1a1a' },
   dot: { fontSize: 11, color: '#ccc' },
   othersScore: { fontSize: 11, color: '#888', flex: 1 },
+  exportBtn: { fontSize: 13, color: PURPLE, fontWeight: '500' },
   empty: { textAlign: 'center', color: '#aaa', marginTop: 40, fontSize: 15 },
   searchRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
