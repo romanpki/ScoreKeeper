@@ -3,11 +3,62 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ScoreKeeper — Compteur de points pour jeux de cartes</title>
-  <meta name="description" content="ScoreKeeper gère les scores de vos jeux de cartes : Skull King, Skyjo, Uno, Papayoo, Flip 7 et plus. Gratuit, sans compte, fonctionne hors-ligne." />
+  <title>ScoreKeeper — Compteur de points pour jeux de cartes | Skull King, Skyjo, Uno</title>
+  <meta name="description" content="ScoreKeeper gère automatiquement les scores de vos jeux de cartes : Skull King, Skyjo, Uno, Papayoo, Flip 7 et plus. Gratuit, sans compte, fonctionne hors-ligne sur iOS et Android." />
+  <meta name="keywords" content="scorekeeper, compteur de points, jeux de cartes, skull king, skyjo, uno, papayoo, flip 7, score, application mobile, iOS, Android, gratuit" />
+  <meta name="author" content="Roman Pki" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://romanpki.github.io/ScoreKeeper/" />
+
+  <!-- Open Graph -->
   <meta property="og:title" content="ScoreKeeper — Scores pour jeux de cartes" />
-  <meta property="og:description" content="Fini les feuilles de papier. Gérez les scores de vos jeux de cartes en famille ou entre amis." />
+  <meta property="og:description" content="Fini les feuilles de papier. Gérez les scores de Skull King, Skyjo, Uno, Papayoo et plus — gratuitement, sans compte, hors-ligne." />
   <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://romanpki.github.io/ScoreKeeper/" />
+  <meta property="og:locale" content="fr_FR" />
+  <meta property="og:site_name" content="ScoreKeeper" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="ScoreKeeper — Compteur de points pour jeux de cartes" />
+  <meta name="twitter:description" content="Gérez les scores de Skull King, Skyjo, Uno, Papayoo et plus. Gratuit, sans compte, hors-ligne." />
+
+  <!-- Schema.org JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "ScoreKeeper",
+    "description": "Application mobile de comptage de points pour jeux de cartes. Skull King, Skyjo, Uno, Papayoo, Flip 7, À Odin, Trio et jeux personnalisés. Gratuit, sans compte, hors-ligne.",
+    "applicationCategory": "GameApplication",
+    "applicationSubCategory": "Card Game",
+    "operatingSystem": "iOS, Android",
+    "inLanguage": "fr",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "EUR"
+    },
+    "url": "https://romanpki.github.io/ScoreKeeper/",
+    "author": {
+      "@type": "Person",
+      "name": "Roman Pki"
+    },
+    "featureList": [
+      "Skull King avec calcul automatique des mises et bonus",
+      "Skyjo avec détection du doublement",
+      "Flip 7, Papayoo, Uno, À Odin, Trio",
+      "Jeux personnalisés",
+      "Historique complet",
+      "Statistiques par joueur",
+      "Export CSV",
+      "Fonctionne hors-ligne"
+    ],
+    "screenshot": "https://romanpki.github.io/ScoreKeeper/",
+    "softwareVersion": "1.0",
+    "releaseNotes": "Première version publique de ScoreKeeper."
+  }
+  </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -99,6 +150,19 @@
       transition: border-color .2s, transform .15s;
     }
     .btn-secondary:hover { border-color: var(--purple); transform: translateY(-1px); }
+    .btn-store {
+      background: #111; color: #fff;
+      padding: 12px 22px; border-radius: 12px;
+      font-size: 14px; font-weight: 600;
+      text-decoration: none; display: inline-flex; align-items: center; gap: 10px;
+      transition: background .2s, transform .15s;
+      border: 1px solid #333;
+    }
+    .btn-store:hover { background: #222; transform: translateY(-1px); }
+    .btn-store-label { display: flex; flex-direction: column; text-align: left; }
+    .btn-store-sub { font-size: 10px; font-weight: 400; opacity: .7; line-height: 1.2; }
+    .btn-store-name { font-size: 15px; font-weight: 700; line-height: 1.2; }
+    .btn-store-icon { font-size: 22px; line-height: 1; }
 
     /* ── PHONE MOCKUP ── */
     .mockup-wrap {
@@ -283,7 +347,7 @@
 
 <!-- NAV -->
 <nav>
-  <a class="nav-logo" href="#">🎮 ScoreKeeper</a>
+  <a class="nav-logo" href="#">🃏 ScoreKeeper</a>
   <div class="nav-links">
     <a href="#jeux">Jeux</a>
     <a href="#fonctionnalites">Fonctionnalités</a>
@@ -298,13 +362,22 @@
   <h1>Gérez vos scores<br /><span>sans papier, sans stress</span></h1>
   <p>ScoreKeeper gère automatiquement les points de vos jeux de cartes en famille ou entre amis. Skull King, Skyjo, Uno, Papayoo et bien d'autres.</p>
   <div class="hero-cta">
-    <a class="btn-primary" href="https://github.com/romanpki/ScoreKeeper" target="_blank" rel="noopener">
-      ⬇ Télécharger (bientôt)
+    <a class="btn-store" href="#" aria-label="Télécharger sur l'App Store (bientôt disponible)" title="Bientôt disponible sur l'App Store">
+      <span class="btn-store-icon"> </span>
+      <span class="btn-store-label">
+        <span class="btn-store-sub">Bientôt sur</span>
+        <span class="btn-store-name">App Store</span>
+      </span>
     </a>
-    <a class="btn-secondary" href="https://github.com/romanpki/ScoreKeeper" target="_blank" rel="noopener">
-      ★ Voir le code source
+    <a class="btn-store" href="#" aria-label="Télécharger sur Google Play (bientôt disponible)" title="Bientôt disponible sur Google Play">
+      <span class="btn-store-icon">▶</span>
+      <span class="btn-store-label">
+        <span class="btn-store-sub">Bientôt sur</span>
+        <span class="btn-store-name">Google Play</span>
+      </span>
     </a>
   </div>
+  <p style="font-size:12px;color:var(--muted);margin-top:14px;">Publication prévue prochainement</p>
 
   <!-- MOCKUP -->
   <div class="mockup-wrap">
@@ -489,21 +562,28 @@
   <h2>Une question ?<br />Un problème ?</h2>
   <p class="section-sub">Signaler un bug, suggérer une fonctionnalité ou juste dire bonjour — toutes les demandes sont bienvenues.</p>
 
-  <form action="mailto:scorekeeper.app@pm.me" method="get" enctype="text/plain">
+  <form id="contact-form" novalidate>
     <div class="form-group">
       <label for="subject">Sujet</label>
-      <input type="text" id="subject" name="subject" placeholder="Bug, suggestion, question…" required />
+      <input type="text" id="subject" placeholder="Bug, suggestion, question…" required />
     </div>
     <div class="form-group">
       <label for="body">Message</label>
-      <textarea id="body" name="body" placeholder="Décrivez votre demande…" required></textarea>
+      <textarea id="body" placeholder="Décrivez votre demande…" required></textarea>
     </div>
     <button type="submit" class="btn-submit">Envoyer un email →</button>
   </form>
-
-  <p style="margin-top:20px; font-size:13px; color:var(--muted);">
-    Ou directement : <a href="mailto:scorekeeper.app@pm.me" style="color:var(--purple);">scorekeeper.app@pm.me</a>
-  </p>
+  <script>
+    document.getElementById('contact-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var subject = document.getElementById('subject').value.trim();
+      var body = document.getElementById('body').value.trim();
+      if (!subject || !body) return;
+      window.location.href = 'mailto:scorekeeper.app@pm.me'
+        + '?subject=' + encodeURIComponent(subject)
+        + '&body=' + encodeURIComponent(body);
+    });
+  </script>
 </section>
 
 <!-- FOOTER -->
@@ -511,7 +591,7 @@
   <div class="footer-links">
     <a href="https://github.com/romanpki/ScoreKeeper" target="_blank" rel="noopener">GitHub</a>
     <a href="https://github.com/romanpki/ScoreKeeper/blob/main/Documentation/Politique%20de%20confidentialit%C3%A9%20%E2%80%94%20ScoreKeeper.rtf" target="_blank" rel="noopener">Politique de confidentialité</a>
-    <a href="mailto:scorekeeper.app@pm.me">Contact</a>
+    <a href="#contact">Contact</a>
   </div>
   <p>© 2026 ScoreKeeper — Fait avec ☕ et beaucoup de parties de Skull King</p>
 </footer>
