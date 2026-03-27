@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ScoreKeeper — Compteur de points pour jeux de cartes</title>
+  <meta name="description" content="ScoreKeeper gère les scores de vos jeux de cartes : Skull King, Skyjo, Uno, Papayoo, Flip 7 et plus. Gratuit, sans compte, fonctionne hors-ligne." />
+  <meta property="og:title" content="ScoreKeeper — Scores pour jeux de cartes" />
+  <meta property="og:description" content="Fini les feuilles de papier. Gérez les scores de vos jeux de cartes en famille ou entre amis." />
+  <meta property="og:type" content="website" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --purple: #6c63ff;
+      --purple-light: #eeedfe;
+      --purple-dark: #4b44cc;
+      --text: #1a1a1a;
+      --sub: #555;
+      --muted: #888;
+      --bg: #f7f7f9;
+      --card: #ffffff;
+      --border: #e8e8f0;
+      --radius: 16px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 56px;
+    }
+    .nav-logo { font-size: 17px; font-weight: 700; color: var(--purple); text-decoration: none; }
+    .nav-links { display: flex; gap: 24px; }
+    .nav-links a { font-size: 14px; color: var(--sub); text-decoration: none; font-weight: 500; }
+    .nav-links a:hover { color: var(--purple); }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(145deg, #f0effe 0%, #fff 60%, #f7f7f9 100%);
+      padding: 80px 24px 72px;
+      text-align: center;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--purple-light);
+      color: var(--purple);
+      border: 1px solid #d0ccff;
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-size: 13px; font-weight: 600;
+      margin-bottom: 24px;
+    }
+    .hero h1 {
+      font-size: clamp(36px, 6vw, 62px);
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      line-height: 1.1;
+      color: var(--text);
+      margin-bottom: 20px;
+    }
+    .hero h1 span { color: var(--purple); }
+    .hero p {
+      font-size: clamp(17px, 2.5vw, 20px);
+      color: var(--sub);
+      max-width: 560px;
+      margin: 0 auto 36px;
+    }
+    .hero-cta {
+      display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
+    }
+    .btn-primary {
+      background: var(--purple); color: #fff;
+      padding: 14px 28px; border-radius: 12px;
+      font-size: 15px; font-weight: 600;
+      text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+      transition: background .2s, transform .15s;
+    }
+    .btn-primary:hover { background: var(--purple-dark); transform: translateY(-1px); }
+    .btn-secondary {
+      background: #fff; color: var(--text);
+      padding: 14px 28px; border-radius: 12px;
+      font-size: 15px; font-weight: 600;
+      text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+      border: 1px solid var(--border);
+      transition: border-color .2s, transform .15s;
+    }
+    .btn-secondary:hover { border-color: var(--purple); transform: translateY(-1px); }
+
+    /* ── PHONE MOCKUP ── */
+    .mockup-wrap {
+      margin: 56px auto 0;
+      max-width: 300px;
+      position: relative;
+    }
+    .mockup {
+      background: #1a1a2e;
+      border-radius: 36px;
+      padding: 20px 16px 28px;
+      box-shadow: 0 32px 64px rgba(108,99,255,.25), 0 0 0 1px rgba(255,255,255,.1);
+    }
+    .mockup-notch {
+      width: 90px; height: 10px;
+      background: #111;
+      border-radius: 8px;
+      margin: 0 auto 16px;
+    }
+    .mockup-screen {
+      background: #f7f7f9;
+      border-radius: 20px;
+      padding: 16px 12px;
+      min-height: 420px;
+    }
+    .mockup-bar {
+      background: #fff;
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      display: flex; align-items: center; gap: 8px;
+      border-left: 4px solid var(--purple);
+    }
+    .mockup-dot {
+      width: 28px; height: 28px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: #fff;
+      flex-shrink: 0;
+    }
+    .mockup-name { font-size: 12px; font-weight: 600; color: var(--text); }
+    .mockup-score { font-size: 12px; font-weight: 700; margin-left: auto; }
+    .mockup-label { font-size: 10px; color: var(--muted); margin-bottom: 6px; font-weight: 600; letter-spacing: .3px; }
+    .mockup-game-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+
+    /* ── GAMES GRID ── */
+    section { padding: 72px 24px; max-width: 1040px; margin: 0 auto; }
+    .section-label {
+      font-size: 12px; font-weight: 700; letter-spacing: 1px;
+      color: var(--purple); text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    h2 {
+      font-size: clamp(26px, 4vw, 38px);
+      font-weight: 800; letter-spacing: -.5px;
+      margin-bottom: 16px;
+    }
+    .section-sub { font-size: 17px; color: var(--sub); max-width: 540px; margin-bottom: 48px; }
+
+    .games-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .game-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 22px 20px;
+      border: 1px solid var(--border);
+      transition: box-shadow .2s, transform .15s;
+    }
+    .game-card:hover { box-shadow: 0 8px 24px rgba(108,99,255,.12); transform: translateY(-2px); }
+    .game-emoji { font-size: 30px; margin-bottom: 10px; }
+    .game-name { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .game-desc { font-size: 13px; color: var(--sub); line-height: 1.5; }
+    .game-tag {
+      display: inline-block; margin-top: 10px;
+      font-size: 11px; font-weight: 600; padding: 3px 10px;
+      border-radius: 20px; background: var(--purple-light); color: var(--purple);
+    }
+
+    /* ── FEATURES ── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .feature-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 24px;
+      border: 1px solid var(--border);
+      display: flex; gap: 16px; align-items: flex-start;
+    }
+    .feature-icon {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: var(--purple-light);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+    .feature-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .feature-desc { font-size: 13px; color: var(--sub); line-height: 1.5; }
+
+    /* ── PRIVACY / OPEN SOURCE ── */
+    .trust-band {
+      background: linear-gradient(135deg, #1a1a2e 0%, #2d2460 100%);
+      padding: 64px 24px;
+      text-align: center;
+      color: #fff;
+    }
+    .trust-band h2 { color: #fff; margin-bottom: 12px; }
+    .trust-band p { color: rgba(255,255,255,.7); font-size: 17px; max-width: 520px; margin: 0 auto 32px; }
+    .trust-links { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+    .trust-link {
+      background: rgba(255,255,255,.12);
+      color: #fff;
+      padding: 12px 22px; border-radius: 10px;
+      font-size: 14px; font-weight: 600;
+      text-decoration: none; border: 1px solid rgba(255,255,255,.2);
+      transition: background .2s;
+    }
+    .trust-link:hover { background: rgba(255,255,255,.22); }
+
+    /* ── CONTACT ── */
+    .contact-section { max-width: 600px; margin: 0 auto; padding: 72px 24px; }
+    .contact-section h2 { margin-bottom: 10px; }
+    .contact-section .section-sub { margin-bottom: 36px; }
+    form { display: flex; flex-direction: column; gap: 16px; }
+    label { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; display: block; }
+    input, textarea {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 15px;
+      font-family: inherit;
+      background: #fff;
+      color: var(--text);
+      transition: border-color .2s;
+      outline: none;
+    }
+    input:focus, textarea:focus { border-color: var(--purple); }
+    textarea { min-height: 130px; resize: vertical; }
+    .form-group { display: flex; flex-direction: column; }
+    .btn-submit {
+      background: var(--purple); color: #fff;
+      padding: 14px 28px; border-radius: 12px;
+      font-size: 15px; font-weight: 700;
+      border: none; cursor: pointer;
+      transition: background .2s, transform .15s;
+      align-self: flex-start;
+    }
+    .btn-submit:hover { background: var(--purple-dark); transform: translateY(-1px); }
+
+    /* ── FOOTER ── */
+    footer {
+      background: #fff;
+      border-top: 1px solid var(--border);
+      padding: 32px 24px;
+      text-align: center;
+    }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; margin-bottom: 16px; }
+    .footer-links a { font-size: 13px; color: var(--muted); text-decoration: none; }
+    .footer-links a:hover { color: var(--purple); }
+    footer p { font-size: 12px; color: #bbb; }
+
+    /* ── DIVIDER ── */
+    .divider {
+      max-width: 1040px; margin: 0 auto;
+      border: none; border-top: 1px solid var(--border);
+    }
+
+    @media (max-width: 600px) {
+      nav { padding: 0 16px; }
+      .nav-links { gap: 16px; }
+      .hero { padding: 56px 20px 56px; }
+      section { padding: 56px 20px; }
+      .games-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">🎮 ScoreKeeper</a>
+  <div class="nav-links">
+    <a href="#jeux">Jeux</a>
+    <a href="#fonctionnalites">Fonctionnalités</a>
+    <a href="#contact">Contact</a>
+    <a href="https://github.com/romanpki/ScoreKeeper" target="_blank" rel="noopener">GitHub ↗</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" style="max-width:100%; padding-left:24px; padding-right:24px;">
+  <div class="hero-badge">🃏 iOS &amp; Android · Gratuit · Hors-ligne</div>
+  <h1>Gérez vos scores<br /><span>sans papier, sans stress</span></h1>
+  <p>ScoreKeeper gère automatiquement les points de vos jeux de cartes en famille ou entre amis. Skull King, Skyjo, Uno, Papayoo et bien d'autres.</p>
+  <div class="hero-cta">
+    <a class="btn-primary" href="https://github.com/romanpki/ScoreKeeper" target="_blank" rel="noopener">
+      ⬇ Télécharger (bientôt)
+    </a>
+    <a class="btn-secondary" href="https://github.com/romanpki/ScoreKeeper" target="_blank" rel="noopener">
+      ★ Voir le code source
+    </a>
+  </div>
+
+  <!-- MOCKUP -->
+  <div class="mockup-wrap">
+    <div class="mockup">
+      <div class="mockup-notch"></div>
+      <div class="mockup-screen">
+        <div class="mockup-label">PARTIE EN COURS</div>
+        <div class="mockup-game-title">☠️ Skull King — Manche 6</div>
+        <div class="mockup-bar">
+          <div class="mockup-dot" style="background:#6c63ff;">A</div>
+          <div>
+            <div class="mockup-name">Alice</div>
+            <div style="font-size:11px;color:#888;">Mise 3/3 ✓</div>
+          </div>
+          <div class="mockup-score" style="color:#0F6E56;">+60 pts</div>
+        </div>
+        <div class="mockup-bar">
+          <div class="mockup-dot" style="background:#E33B3B;">B</div>
+          <div>
+            <div class="mockup-name">Bob</div>
+            <div style="font-size:11px;color:#888;">Mise 2/4 ✗</div>
+          </div>
+          <div class="mockup-score" style="color:#E33B3B;">−20 pts</div>
+        </div>
+        <div class="mockup-bar">
+          <div class="mockup-dot" style="background:#EF9F27;">C</div>
+          <div>
+            <div class="mockup-name">Clara</div>
+            <div style="font-size:11px;color:#888;">Mise 0/0 ✓</div>
+          </div>
+          <div class="mockup-score" style="color:#0F6E56;">+60 pts</div>
+        </div>
+        <div style="margin-top:14px; background:#6c63ff; border-radius:10px; padding:11px; text-align:center;">
+          <span style="color:#fff; font-size:13px; font-weight:700;">✓ Valider la manche</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- JEUX -->
+<section id="jeux">
+  <div class="section-label">Jeux supportés</div>
+  <h2>7 jeux préconfigurés,<br />et tous vos jeux perso</h2>
+  <p class="section-sub">Chaque jeu embarque ses propres règles de calcul. Les règles sont accessibles directement dans l'app.</p>
+
+  <div class="games-grid">
+    <div class="game-card">
+      <div class="game-emoji">☠️</div>
+      <div class="game-name">Skull King</div>
+      <div class="game-desc">Mises, plis, bonus (cartes 14, pirates, Sirène). Donneur tournant. Calcul automatique selon les règles officielles.</div>
+      <span class="game-tag">Mises &amp; plis</span>
+    </div>
+    <div class="game-card">
+      <div class="game-emoji">❄️</div>
+      <div class="game-name">Skyjo</div>
+      <div class="game-desc">Détection automatique du doublement de score. Tableau de progression en temps réel.</div>
+      <span class="game-tag">Le + bas gagne</span>
+    </div>
+    <div class="game-card">
+      <div class="game-emoji">🃏</div>
+      <div class="game-name">Flip 7</div>
+      <div class="game-desc">Gestion des bonus (+4, +8, +15, ×2) et du Flip 7. Premier à 200 pts.</div>
+      <span class="game-tag">Bonus</span>
+    </div>
+    <div class="game-card">
+      <div class="game-emoji">🥝</div>
+      <div class="game-name">Papayoo</div>
+      <div class="game-desc">Total automatique à 250 pts par manche. Saisie guidée joueur par joueur.</div>
+      <span class="game-tag">Le + bas gagne</span>
+    </div>
+    <div class="game-card">
+      <div class="game-emoji">🎴</div>
+      <div class="game-name">Uno</div>
+      <div class="game-desc">Comptage des points en main jusqu'à 500. Simple et rapide.</div>
+      <span class="game-tag">Le + haut gagne</span>
+    </div>
+    <div class="game-card">
+      <div class="game-emoji">⚡</div>
+      <div class="game-name">À Odin</div>
+      <div class="game-desc">Suivi du seuil de points configurable. Le dernier debout gagne.</div>
+      <span class="game-tag">Seuil configurable</span>
+    </div>
+    <div class="game-card">
+      <div class="game-emoji">3️⃣</div>
+      <div class="game-name">Trio</div>
+      <div class="game-desc">Comptage de victoires par manche. Premier au nombre de manches cible.</div>
+      <span class="game-tag">Victoires</span>
+    </div>
+    <div class="game-card" style="border-style: dashed; background: var(--purple-light);">
+      <div class="game-emoji">🎮</div>
+      <div class="game-name">Votre jeu</div>
+      <div class="game-desc">Créez n'importe quel jeu personnalisé : condition de fin, direction du score, scores négatifs…</div>
+      <span class="game-tag">Personnalisé</span>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- FONCTIONNALITÉS -->
+<section id="fonctionnalites">
+  <div class="section-label">Fonctionnalités</div>
+  <h2>Tout ce qu'il faut,<br />rien de superflu</h2>
+  <p class="section-sub">Conçu pour être rapide à prendre en main autour d'une table.</p>
+
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <div>
+        <div class="feature-title">Tableau en temps réel</div>
+        <div class="feature-desc">Scores manche par manche, classement automatique, cumul mis à jour instantanément.</div>
+      </div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🏆</div>
+      <div>
+        <div class="feature-title">Podium animé</div>
+        <div class="feature-desc">Confettis et podium à l'écran à chaque fin de partie. Statistiques de la partie.</div>
+      </div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📋</div>
+      <div>
+        <div class="feature-title">Historique complet</div>
+        <div class="feature-desc">Toutes vos parties sauvegardées. Recherche, filtres par jeu, tri par date ou durée.</div>
+      </div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">👤</div>
+      <div>
+        <div class="feature-title">Carnet de joueurs</div>
+        <div class="feature-desc">Profils persistants avec avatar coloré. Statistiques W/L, taux de victoire, classement global.</div>
+      </div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">↩</div>
+      <div>
+        <div class="feature-title">Annuler une manche</div>
+        <div class="feature-desc">Erreur de saisie ? Annulez la dernière manche en un tap, sans perdre la partie.</div>
+      </div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📖</div>
+      <div>
+        <div class="feature-title">Règles intégrées</div>
+        <div class="feature-desc">Un bouton ? dans chaque partie pour afficher les règles sans quitter l'app.</div>
+      </div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📤</div>
+      <div>
+        <div class="feature-title">Export &amp; import CSV</div>
+        <div class="feature-desc">Exportez votre historique en CSV, partagez-le ou sauvegardez-le. Import depuis un fichier CSV.</div>
+      </div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔒</div>
+      <div>
+        <div class="feature-title">100 % hors-ligne</div>
+        <div class="feature-desc">Aucun compte, aucune connexion requise. Données stockées localement sur votre appareil.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST BAND -->
+<div class="trust-band">
+  <div style="max-width:1040px;margin:0 auto;">
+    <h2>Open source &amp; respectueux de votre vie privée</h2>
+    <p>ScoreKeeper ne collecte aucune donnée. Aucun serveur tiers, aucune publicité, aucun tracking. Le code source est entièrement disponible sur GitHub.</p>
+    <div class="trust-links">
+      <a class="trust-link" href="https://github.com/romanpki/ScoreKeeper" target="_blank" rel="noopener">⭐ Code source sur GitHub</a>
+      <a class="trust-link" href="https://github.com/romanpki/ScoreKeeper/blob/main/Documentation/Politique%20de%20confidentialit%C3%A9%20%E2%80%94%20ScoreKeeper.rtf" target="_blank" rel="noopener">🔐 Politique de confidentialité</a>
+    </div>
+  </div>
+</div>
+
+<!-- CONTACT -->
+<section id="contact" class="contact-section">
+  <div class="section-label">Contact</div>
+  <h2>Une question ?<br />Un problème ?</h2>
+  <p class="section-sub">Signaler un bug, suggérer une fonctionnalité ou juste dire bonjour — toutes les demandes sont bienvenues.</p>
+
+  <form action="mailto:scorekeeper.app@pm.me" method="get" enctype="text/plain">
+    <div class="form-group">
+      <label for="subject">Sujet</label>
+      <input type="text" id="subject" name="subject" placeholder="Bug, suggestion, question…" required />
+    </div>
+    <div class="form-group">
+      <label for="body">Message</label>
+      <textarea id="body" name="body" placeholder="Décrivez votre demande…" required></textarea>
+    </div>
+    <button type="submit" class="btn-submit">Envoyer un email →</button>
+  </form>
+
+  <p style="margin-top:20px; font-size:13px; color:var(--muted);">
+    Ou directement : <a href="mailto:scorekeeper.app@pm.me" style="color:var(--purple);">scorekeeper.app@pm.me</a>
+  </p>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-links">
+    <a href="https://github.com/romanpki/ScoreKeeper" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://github.com/romanpki/ScoreKeeper/blob/main/Documentation/Politique%20de%20confidentialit%C3%A9%20%E2%80%94%20ScoreKeeper.rtf" target="_blank" rel="noopener">Politique de confidentialité</a>
+    <a href="mailto:scorekeeper.app@pm.me">Contact</a>
+  </div>
+  <p>© 2026 ScoreKeeper — Fait avec ☕ et beaucoup de parties de Skull King</p>
+</footer>
+
+</body>
+</html>
