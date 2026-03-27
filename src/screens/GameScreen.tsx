@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, TextInput, Alert,
+  ScrollView, TextInput, Alert, Animated,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -34,6 +35,11 @@ export default function GameScreen() {
   const [skBonus14, setSkBonus14] = useState<Record<string, number>>({});
   const [skBonusPirate, setSkBonusPirate] = useState<Record<string, number>>({});
   const [skBonusSK, setSkBonusSK] = useState<Record<string, boolean>>({});
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, { toValue: 1, duration: 350, useNativeDriver: true }).start();
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -229,6 +235,7 @@ export default function GameScreen() {
 
     await upsertGame(updatedGame);
     setGame(updatedGame);
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setWinRoundWinner(null);
 
     if (isFinished) {
@@ -278,6 +285,7 @@ export default function GameScreen() {
 
     await upsertGame(updatedGame);
     setGame(updatedGame);
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
     const bids: Record<string, number> = {};
     const tricks: Record<string, number> = {};
@@ -383,6 +391,7 @@ export default function GameScreen() {
 
     await upsertGame(updatedGame);
     setGame(updatedGame);
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setFirstPlayerId(null);
     setFlip7Achieved(null);
 
@@ -394,6 +403,26 @@ export default function GameScreen() {
     if (isFinished) {
       navigation.replace('EndGame', { gameId: game.id });
     }
+  }
+
+  async function handleUndoLastRound() {
+    if (!game || game.rounds.length === 0) return;
+    Alert.alert(
+      'Annuler la dernière manche ?',
+      'Les scores de cette manche seront supprimés.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Confirmer', style: 'destructive',
+          onPress: async () => {
+            const updatedGame = { ...game, rounds: game.rounds.slice(0, -1) };
+            await upsertGame(updatedGame);
+            setGame(updatedGame);
+            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          },
+        },
+      ]
+    );
   }
 
   async function handleAbandon() {
@@ -436,6 +465,7 @@ export default function GameScreen() {
   const skyjoNotes = getSkyjoDoubledNotes();
 
   return (
+    <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
     <SafeAreaView style={styles.safe}>
 
       {/* En-tête */}
@@ -770,17 +800,25 @@ export default function GameScreen() {
         <TouchableOpacity style={styles.validateBtn} onPress={handleValidate}>
           <Text style={styles.validateBtnText}>Valider la manche {roundNumber}</Text>
         </TouchableOpacity>
-        {game.rounds.length > 0 && (
-          <TouchableOpacity style={styles.forceEndBtn} onPress={handleForceEnd}>
-            <Text style={styles.forceEndBtnText}>Terminer la partie</Text>
-          </TouchableOpacity>
-        )}
+        <View style={styles.footerRow}>
+          {game.rounds.length > 0 && (
+            <TouchableOpacity style={styles.forceEndBtn} onPress={handleForceEnd}>
+              <Text style={styles.forceEndBtnText}>Terminer</Text>
+            </TouchableOpacity>
+          )}
+          {game.rounds.length > 0 && (
+            <TouchableOpacity style={styles.undoBtn} onPress={handleUndoLastRound}>
+              <Text style={styles.undoBtnText}>↩ Annuler M{game.rounds.length}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
         <TouchableOpacity style={styles.abandonBtn} onPress={handleAbandon}>
           <Text style={styles.abandonBtnText}>Abandonner la partie</Text>
         </TouchableOpacity>
       </View>
 
     </SafeAreaView>
+    </Animated.View>
   );
 }
 
@@ -877,8 +915,11 @@ const styles = StyleSheet.create({
     paddingVertical: 16, alignItems: 'center', marginBottom: 8,
   },
   validateBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  forceEndBtn: { alignItems: 'center', paddingVertical: 8 },
+  footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  forceEndBtn: { paddingVertical: 8, paddingHorizontal: 4 },
   forceEndBtnText: { fontSize: 14, color: '#888', fontWeight: '500' },
+  undoBtn: { paddingVertical: 8, paddingHorizontal: 4 },
+  undoBtnText: { fontSize: 13, color: '#aaa' },
   papayooTotal: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     backgroundColor: '#fff', borderRadius: 12, padding: 14, marginHorizontal: 16,

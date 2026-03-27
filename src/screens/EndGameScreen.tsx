@@ -403,6 +403,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14, alignItems: 'center',
   },
   btnPrimaryText: { color: '#fff', fontSize: 15, fontWeight: '500' },
+  btnSecondaryFull: {
+    padding: 12, borderRadius: 12,
+    backgroundColor: '#fff', borderWidth: 1, borderColor: '#e0e0e0',
+    alignItems: 'center',
+  },
+  btnSecondaryFullText: { fontSize: 14, fontWeight: '500', color: '#1a1a1a' },
   btnOutline: {
     borderRadius: 12, paddingVertical: 12,
     backgroundColor: '#fff', borderWidth: 1, borderColor: PURPLE + '66',
