@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, TextInput, Alert, Animated,
+  ScrollView, TextInput, Alert, Animated, useWindowDimensions,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import * as Notifications from 'expo-notifications';
+import { GAME_RULES } from '../data/gameRules';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -36,6 +38,9 @@ export default function GameScreen() {
   const [skBonusPirate, setSkBonusPirate] = useState<Record<string, number>>({});
   const [skBonusSK, setSkBonusSK] = useState<Record<string, boolean>>({});
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const { width, height } = useWindowDimensions();
+  const isSpectatorMode = width > height && width > 700;
+  const [forceInputMode, setForceInputMode] = useState(false);
 
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 350, useNativeDriver: true }).start();
@@ -66,6 +71,19 @@ export default function GameScreen() {
         const bSK: Record<string, boolean> = {};
         g.playerIds.forEach(id => { bids[id] = 0; tricks[id] = 0; b14[id] = 0; bPirate[id] = 0; bSK[id] = false; });
         setSkBids(bids); setSkTricks(tricks); setSkBonus14(b14); setSkBonusPirate(bPirate); setSkBonusSK(bSK);
+      }
+
+      // Programmer une notification de rappel si la partie est en cours
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status === 'granted' && g.status === 'playing') {
+        await Notifications.cancelAllScheduledNotificationsAsync();
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: 'Partie en cours 🎮',
+            body: `Ta partie de ${cfg?.name ?? 'jeu'} t'attend !`,
+          },
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 86400, repeats: false },
+        });
       }
     };
     load();
@@ -198,6 +216,7 @@ export default function GameScreen() {
       finishedAt: Date.now(),
     };
     await upsertGame(updatedGame);
+    await Notifications.cancelAllScheduledNotificationsAsync();
     navigation.replace('EndGame', { gameId: game.id });
   }
 
@@ -239,6 +258,7 @@ export default function GameScreen() {
     setWinRoundWinner(null);
 
     if (isFinished) {
+      await Notifications.cancelAllScheduledNotificationsAsync();
       navigation.replace('EndGame', { gameId: game.id });
     }
   }
@@ -296,6 +316,7 @@ export default function GameScreen() {
     setSkBids(bids); setSkTricks(tricks); setSkBonus14(b14); setSkBonusPirate(bPirate); setSkBonusSK(bSK);
 
     if (isFinished) {
+      await Notifications.cancelAllScheduledNotificationsAsync();
       navigation.replace('EndGame', { gameId: game.id });
     }
   }
@@ -401,6 +422,7 @@ export default function GameScreen() {
     setInputs(init);
 
     if (isFinished) {
+      await Notifications.cancelAllScheduledNotificationsAsync();
       navigation.replace('EndGame', { gameId: game.id });
     }
   }
@@ -470,7 +492,7 @@ export default function GameScreen() {
 
       {/* En-tête */}
       <View style={styles.header}>
-        <View>
+        <View style={styles.headerInner}>
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => navigation.goBack()}>
               <Text style={styles.back}>‹</Text>
@@ -488,6 +510,14 @@ export default function GameScreen() {
           </View>
           <Text style={styles.roundSub}>Manche {roundNumber}{elapsed ? ` · ${elapsed}` : ''}</Text>
         </View>
+        {GAME_RULES[config.id] && (
+          <TouchableOpacity
+            style={styles.rulesBtn}
+            onPress={() => Alert.alert(`Règles — ${config.name}`, GAME_RULES[config.id])}
+          >
+            <Text style={styles.rulesBtnText}>?</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Tableau des scores */}
@@ -570,8 +600,18 @@ export default function GameScreen() {
         </View>
       )}
 
+      {/* ── Mode spectateur (iPad paysage) ── */}
+      {isSpectatorMode && !forceInputMode ? (
+        <TouchableOpacity
+          style={styles.spectatorFAB}
+          onPress={() => setForceInputMode(true)}
+        >
+          <Text style={styles.spectatorFABText}>✏️ Saisir</Text>
+        </TouchableOpacity>
+      ) : null}
+
       {/* ── Zone de saisie Skull King ── */}
-      {config.inputType === 'bid' ? (
+      {(!isSpectatorMode || forceInputMode) && config.inputType === 'bid' ? (
         <ScrollView contentContainerStyle={styles.inputs}>
           <View style={styles.skDealerBanner}>
             <Text style={styles.skDealerText}>
@@ -660,7 +700,7 @@ export default function GameScreen() {
             );
           })}
         </ScrollView>
-      ) : config.inputType === 'wins' ? (
+      ) : (!isSpectatorMode || forceInputMode) && config.inputType === 'wins' ? (
         <ScrollView contentContainerStyle={styles.inputs}>
           <View style={styles.firstPlayerSection}>
             <Text style={styles.firstPlayerLabel}>Qui a gagné la manche {roundNumber} ?</Text>
@@ -683,7 +723,7 @@ export default function GameScreen() {
             </View>
           </View>
         </ScrollView>
-      ) : (
+      ) : (!isSpectatorMode || forceInputMode) ? (
         /* ── Zone de saisie numérique ── */
         <ScrollView contentContainerStyle={styles.inputs}>
           <View style={styles.inputsHeader}>
@@ -778,10 +818,10 @@ export default function GameScreen() {
             </View>
           )}
         </ScrollView>
-      )}
+      ) : null}
 
       {/* Total en cours pour Papayoo */}
-      {config.id === 'papayoo' && (
+      {(!isSpectatorMode || forceInputMode) && config.id === 'papayoo' && (
         <View style={styles.papayooTotal}>
           <Text style={styles.papayooTotalLabel}>Total saisi :</Text>
           <Text style={[
@@ -796,7 +836,12 @@ export default function GameScreen() {
       )}
 
       {/* Footer */}
-      <View style={styles.footer}>
+      {isSpectatorMode && forceInputMode && (
+        <TouchableOpacity style={styles.spectatorBack} onPress={() => setForceInputMode(false)}>
+          <Text style={styles.spectatorBackText}>← Mode tableau</Text>
+        </TouchableOpacity>
+      )}
+      {(!isSpectatorMode || forceInputMode) && <View style={styles.footer}>
         <TouchableOpacity style={styles.validateBtn} onPress={handleValidate}>
           <Text style={styles.validateBtnText}>Valider la manche {roundNumber}</Text>
         </TouchableOpacity>
@@ -815,7 +860,7 @@ export default function GameScreen() {
         <TouchableOpacity style={styles.abandonBtn} onPress={handleAbandon}>
           <Text style={styles.abandonBtnText}>Abandonner la partie</Text>
         </TouchableOpacity>
-      </View>
+      </View>}
 
     </SafeAreaView>
     </Animated.View>
@@ -830,8 +875,16 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 16, paddingVertical: 12,
     backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
+  headerInner: { flex: 1 },
   headerTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  rulesBtn: {
+    width: 30, height: 30, borderRadius: 15,
+    backgroundColor: '#f0f0f0', alignItems: 'center', justifyContent: 'center',
+    marginLeft: 8,
+  },
+  rulesBtnText: { fontSize: 14, fontWeight: '700', color: '#888' },
   back: { fontSize: 28, color: PURPLE, marginRight: 4, lineHeight: 32 },
   gameName: { fontSize: 20, fontWeight: '700', color: '#1a1a1a' },
   headerMeta: { flexDirection: 'row', alignItems: 'center', marginLeft: 8 },
@@ -968,4 +1021,17 @@ const styles = StyleSheet.create({
   skBonusSKTextOn: { color: '#f39c12', fontWeight: '700' },
   tableCellSKOk: { color: '#2ecc71', fontWeight: '700' },
   tableCellSKFail: { color: '#e74c3c', fontWeight: '700' },
+  spectatorFAB: {
+    position: 'absolute', bottom: 24, right: 24,
+    backgroundColor: PURPLE, borderRadius: 24,
+    paddingHorizontal: 20, paddingVertical: 12,
+    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, elevation: 6,
+    zIndex: 10,
+  },
+  spectatorFABText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  spectatorBack: {
+    backgroundColor: '#f0f0f0', paddingVertical: 10,
+    alignItems: 'center', borderTopWidth: 1, borderTopColor: '#eee',
+  },
+  spectatorBackText: { fontSize: 14, color: '#888' },
 });

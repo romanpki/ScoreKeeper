@@ -7,8 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { getPlayers, updatePlayer, deletePlayer, getGames, saveGames } from '../storage/StorageService';
-import { Player, Game } from '../types';
+import { getPlayers, updatePlayer, deletePlayer, getGames, saveGames, getAllGameConfigs } from '../storage/StorageService';
+import { Player, Game, GameConfig } from '../types';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'PlayerDetail'>;
 type RouteType = RouteProp<RootStackParamList, 'PlayerDetail'>;
@@ -26,6 +26,7 @@ export default function PlayerDetailScreen() {
 
   const [player, setPlayer] = useState<Player | null>(null);
   const [games, setGames] = useState<Game[]>([]);
+  const [allConfigs, setAllConfigs] = useState<GameConfig[]>([]);
   const [editName, setEditName] = useState('');
   const [isEditing, setIsEditing] = useState(false);
 
@@ -34,11 +35,12 @@ export default function PlayerDetailScreen() {
   }, []);
 
   async function load() {
-    const [allPlayers, allGames] = await Promise.all([getPlayers(), getGames()]);
+    const [allPlayers, allGames, configs] = await Promise.all([getPlayers(), getGames(), getAllGameConfigs()]);
     const p = allPlayers.find(pl => pl.id === playerId) ?? null;
     setPlayer(p);
     setEditName(p?.name ?? '');
     setGames(allGames);
+    setAllConfigs(configs);
   }
 
   if (!player) return null;
@@ -50,6 +52,22 @@ export default function PlayerDetailScreen() {
     ? Math.round((wins / finishedGames.length) * 100)
     : 0;
   const hasActiveGame = myGames.some(g => g.status === 'playing');
+
+  // ── Stats cross-jeux ─────────────────────────────────────────────────────────
+
+  const gameFrequency: Record<string, number> = {};
+  finishedGames.forEach(g => {
+    gameFrequency[g.gameConfigId] = (gameFrequency[g.gameConfigId] ?? 0) + 1;
+  });
+  const favoriteConfigId = Object.entries(gameFrequency).sort((a, b) => b[1] - a[1])[0]?.[0];
+  const favoriteGame = allConfigs.find(c => c.id === favoriteConfigId)?.name ?? null;
+
+  let bestStreak = 0;
+  let currentStreak = 0;
+  [...finishedGames].sort((a, b) => (a.finishedAt ?? 0) - (b.finishedAt ?? 0)).forEach(g => {
+    if (g.winnerId === playerId) { currentStreak++; bestStreak = Math.max(bestStreak, currentStreak); }
+    else currentStreak = 0;
+  });
 
   // ── Renommer ──────────────────────────────────────────────────────────────────
 
@@ -165,6 +183,24 @@ export default function PlayerDetailScreen() {
             <Text style={styles.statLabel}>Taux de victoire</Text>
           </View>
         </View>
+
+        {/* Stats avancées */}
+        {finishedGames.length > 0 && (
+          <View style={styles.statsGrid}>
+            {favoriteGame && (
+              <View style={[styles.statCard, { flex: 2 }]}>
+                <Text style={styles.statValue} numberOfLines={1}>{favoriteGame}</Text>
+                <Text style={styles.statLabel}>Jeu favori</Text>
+              </View>
+            )}
+            {bestStreak > 1 && (
+              <View style={styles.statCard}>
+                <Text style={styles.statValue}>{bestStreak}</Text>
+                <Text style={styles.statLabel}>Meilleure série</Text>
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Couleur */}
         <View style={styles.section}>
