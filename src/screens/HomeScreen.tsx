@@ -160,7 +160,6 @@ export default function HomeScreen() {
           </View>
           <View style={styles.gameList}>
             {allConfigs.map((game, index) => {
-              const unavailable = false;
               const isCustom = !!(game.specialRules as any)?.isCustom;
               const isLast = index === allConfigs.length - 1;
               return (
@@ -169,21 +168,16 @@ export default function HomeScreen() {
                   style={[styles.gameListRow, !isLast && styles.gameListRowBorder]}
                 >
                   <View style={styles.gameListLeft}>
-                    <Text style={[styles.gameListName, unavailable && styles.gameListNameDisabled]}>
+                    <Text style={styles.gameListName}>
                       {game.name}
                     </Text>
-                    {unavailable && (
-                      <View style={styles.soonBadge}>
-                        <Text style={styles.soonBadgeText}>Bientôt</Text>
-                      </View>
-                    )}
-                    {isCustom && !unavailable && (
+                    {isCustom && (
                       <View style={styles.customBadge}>
                         <Text style={styles.customBadgeText}>Perso</Text>
                       </View>
                     )}
                   </View>
-                  <Text style={[styles.gameListMeta, unavailable && styles.gameListMetaDisabled]}>
+                  <Text style={styles.gameListMeta}>
                     {game.minPlayers}–{game.maxPlayers} joueurs
                   </Text>
                 </View>

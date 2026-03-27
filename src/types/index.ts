@@ -51,5 +51,5 @@ export interface Game {
   winnerId: string | null;
   startedAt: number;
   finishedAt: number | null;
-  metadata: Record<string, unknown>;
+  metadata: { targetScore?: number | null };
 }
