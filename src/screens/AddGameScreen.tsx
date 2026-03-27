@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  TextInput, Alert, ScrollView,
+  TextInput, Alert, ScrollView, Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -24,6 +24,7 @@ export default function AddGameScreen() {
   const [direction, setDirection] = useState<'high' | 'low'>('high');
   const [endType, setEndType] = useState<'threshold' | 'fixed'>('threshold');
   const [endValue, setEndValue] = useState('100');
+  const [allowNegative, setAllowNegative] = useState(true);
 
   async function handleCreate() {
     const trimmedName = name.trim();
@@ -51,7 +52,7 @@ export default function AddGameScreen() {
       endValue: ev,
       orderMatters: false,
       inputType: 'simple',
-      specialRules: { isCustom: true },
+      specialRules: { isCustom: true, allowNegative },
     };
 
     await addCustomGameConfig(config);
@@ -183,6 +184,19 @@ export default function AddGameScreen() {
           </View>
         </View>
 
+        {/* Scores négatifs */}
+        <View style={styles.section}>
+          <View style={styles.switchRow}>
+            <Text style={styles.switchLabel}>Scores négatifs autorisés</Text>
+            <Switch
+              value={allowNegative}
+              onValueChange={setAllowNegative}
+              trackColor={{ false: '#e0e0e0', true: PURPLE }}
+              thumbColor="#fff"
+            />
+          </View>
+        </View>
+
       </ScrollView>
 
       <View style={styles.footer}>
@@ -251,4 +265,8 @@ const styles = StyleSheet.create({
   },
   createBtn: { backgroundColor: PURPLE, borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
   createBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  switchRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+  },
+  switchLabel: { fontSize: 15, color: '#1a1a1a' },
 });

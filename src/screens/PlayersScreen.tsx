@@ -7,7 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { getPlayers, addPlayer, getGames } from '../storage/StorageService';
+import { Swipeable } from 'react-native-gesture-handler';
+import { getPlayers, addPlayer, deletePlayer, getCurrentGames, getGames, saveGames } from '../storage/StorageService';
 import { Player, Game } from '../types';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'Players'>;
@@ -43,6 +44,28 @@ export default function PlayersScreen() {
     const myGames = games.filter(g => g.playerIds.includes(playerId) && g.status === 'finished');
     const wins = myGames.filter(g => g.winnerId === playerId).length;
     return { total: myGames.length, wins };
+  }
+
+  async function handleDelete(playerId: string, playerName: string) {
+    const currentGames = await getCurrentGames();
+    const hasActiveGame = currentGames.some(g => g.playerIds.includes(playerId));
+    const message = hasActiveGame
+      ? 'Ce joueur est dans une partie en cours. La supprimer aussi ?'
+      : 'Cette action est irréversible.';
+    Alert.alert(`Supprimer ${playerName} ?`, message, [
+      { text: 'Annuler', style: 'cancel' },
+      {
+        text: 'Supprimer', style: 'destructive',
+        onPress: async () => {
+          if (hasActiveGame) {
+            const allGames = await getGames();
+            await saveGames(allGames.filter(g => !g.playerIds.includes(playerId)));
+          }
+          await deletePlayer(playerId);
+          load();
+        },
+      },
+    ]);
   }
 
   async function handleAdd() {
@@ -90,25 +113,36 @@ export default function PlayersScreen() {
           {filtered.map(player => {
             const stats = getStats(player.id);
             return (
-              <TouchableOpacity
+              <Swipeable
                 key={player.id}
-                style={styles.playerRow}
-                onPress={() => navigation.navigate('PlayerDetail', { playerId: player.id })}
+                renderRightActions={() => (
+                  <TouchableOpacity
+                    style={styles.deleteAction}
+                    onPress={() => handleDelete(player.id, player.name)}
+                  >
+                    <Text style={styles.deleteActionText}>Supprimer</Text>
+                  </TouchableOpacity>
+                )}
               >
-                <View style={[styles.avatar, { backgroundColor: player.color + '22' }]}>
-                  <Text style={[styles.avatarText, { color: player.color }]}>
-                    {player.name[0].toUpperCase()}
-                  </Text>
-                </View>
-                <View style={styles.playerInfo}>
-                  <Text style={styles.playerName}>{player.name}</Text>
-                  <Text style={styles.playerStats}>
-                    {stats.total} partie{stats.total > 1 ? 's' : ''}
-                    {stats.total > 0 ? ` · ${stats.wins} victoire${stats.wins > 1 ? 's' : ''}` : ''}
-                  </Text>
-                </View>
-                <Text style={styles.chevron}>›</Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.playerRow}
+                  onPress={() => navigation.navigate('PlayerDetail', { playerId: player.id })}
+                >
+                  <View style={[styles.avatar, { backgroundColor: player.color + '22' }]}>
+                    <Text style={[styles.avatarText, { color: player.color }]}>
+                      {player.name[0].toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={styles.playerInfo}>
+                    <Text style={styles.playerName}>{player.name}</Text>
+                    <Text style={styles.playerStats}>
+                      {stats.total} partie{stats.total > 1 ? 's' : ''}
+                      {stats.total > 0 ? ` · ${stats.wins} victoire${stats.wins > 1 ? 's' : ''}` : ''}
+                    </Text>
+                  </View>
+                  <Text style={styles.chevron}>›</Text>
+                </TouchableOpacity>
+              </Swipeable>
             );
           })}
           {filtered.length === 0 && search.length > 0 && (
@@ -202,4 +236,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0', borderRadius: 10, padding: 12,
   },
   infoText: { fontSize: 12, color: '#888', lineHeight: 18 },
+  deleteAction: {
+    backgroundColor: '#E74C3C', borderRadius: 10,
+    justifyContent: 'center', alignItems: 'center',
+    paddingHorizontal: 20, marginLeft: 4,
+  },
+  deleteActionText: { color: '#fff', fontSize: 13, fontWeight: '600' },
 });

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView,
+  View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -10,6 +10,15 @@ import { getGames, getPlayers, getAllGameConfigs } from '../storage/StorageServi
 import { Game, GameConfig, Player } from '../types';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'History'>;
+
+function formatDuration(startedAt: number, finishedAt: number): string {
+  const diff = finishedAt - startedAt;
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  if (h > 0) return `${h}h${m > 0 ? `${m}min` : ''}`;
+  if (m > 0) return `${m}min`;
+  return '<1min';
+}
 
 function formatDateRelative(ts: number): string {
   const now = Date.now();
@@ -37,6 +46,8 @@ export default function HistoryScreen() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [allConfigs, setAllConfigs] = useState<GameConfig[]>([]);
   const [filter, setFilter] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<'date' | 'game' | 'duration'>('date');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -56,7 +67,31 @@ export default function HistoryScreen() {
     return unsubscribe;
   }, [navigation]);
 
-  const filteredGames = filter ? games.filter(g => g.gameConfigId === filter) : games;
+  const filteredGames = (() => {
+    let result = filter ? games.filter(g => g.gameConfigId === filter) : games;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(g => {
+        const gameName = allConfigs.find(c => c.id === g.gameConfigId)?.name?.toLowerCase() ?? '';
+        const playerNames = g.playerIds.map(id => players.find(p => p.id === id)?.name?.toLowerCase() ?? '');
+        return gameName.includes(q) || playerNames.some(n => n.includes(q));
+      });
+    }
+    if (sortBy === 'game') {
+      result = [...result].sort((a, b) => {
+        const na = allConfigs.find(c => c.id === a.gameConfigId)?.name ?? '';
+        const nb = allConfigs.find(c => c.id === b.gameConfigId)?.name ?? '';
+        return na.localeCompare(nb);
+      });
+    } else if (sortBy === 'duration') {
+      result = [...result].sort((a, b) => {
+        const da = (a.finishedAt ?? a.startedAt) - a.startedAt;
+        const db = (b.finishedAt ?? b.startedAt) - b.startedAt;
+        return db - da;
+      });
+    }
+    return result;
+  })();
 
   // ── Classement global ──────────────────────────────────────────────────────
 
@@ -80,6 +115,34 @@ export default function HistoryScreen() {
             <Text style={styles.back}>‹</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Historique</Text>
+        </View>
+
+        {/* Recherche */}
+        <View style={styles.searchRow}>
+          <Text style={styles.searchIcon}>🔍</Text>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Rechercher un jeu ou un joueur..."
+            placeholderTextColor="#bbb"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            clearButtonMode="while-editing"
+          />
+        </View>
+
+        {/* Tri */}
+        <View style={styles.sortRow}>
+          {(['date', 'game', 'duration'] as const).map(s => (
+            <TouchableOpacity
+              key={s}
+              style={[styles.sortChip, sortBy === s && styles.sortChipActive]}
+              onPress={() => setSortBy(s)}
+            >
+              <Text style={[styles.sortText, sortBy === s && styles.sortTextActive]}>
+                {s === 'date' ? 'Date' : s === 'game' ? 'Jeu' : 'Durée'}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
         {/* Filtres */}
@@ -168,6 +231,13 @@ export default function HistoryScreen() {
                             {game.rounds.length} manches
                           </Text>
                         </View>
+                        {game.finishedAt && (
+                          <View style={styles.gameCardDurationBadge}>
+                            <Text style={styles.gameCardDurationText}>
+                              {formatDuration(game.startedAt, game.finishedAt)}
+                            </Text>
+                          </View>
+                        )}
                       </View>
                       <Text style={styles.gameCardDate}>
                         {formatDateRelative(game.finishedAt ?? game.startedAt)}
@@ -254,4 +324,26 @@ const styles = StyleSheet.create({
   dot: { fontSize: 11, color: '#ccc' },
   othersScore: { fontSize: 11, color: '#888', flex: 1 },
   empty: { textAlign: 'center', color: '#aaa', marginTop: 40, fontSize: 15 },
+  searchRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#fff', borderRadius: 10,
+    paddingHorizontal: 12, borderWidth: 1, borderColor: '#e0e0e0',
+  },
+  searchIcon: { fontSize: 14 },
+  searchInput: { flex: 1, paddingVertical: 10, fontSize: 14, color: '#1a1a1a' },
+  sortRow: { flexDirection: 'row', gap: 6 },
+  sortChip: {
+    paddingHorizontal: 14, paddingVertical: 6,
+    borderRadius: 20, backgroundColor: '#f0f0f0',
+    borderWidth: 1, borderColor: '#e0e0e0',
+  },
+  sortChipActive: { backgroundColor: '#EEEDFE', borderColor: '#CECBF6' },
+  sortText: { fontSize: 13, color: '#888' },
+  sortTextActive: { color: PURPLE, fontWeight: '500' },
+  gameCardDurationBadge: {
+    paddingHorizontal: 6, paddingVertical: 2,
+    borderRadius: 8, backgroundColor: '#f7f7f7',
+    borderWidth: 1, borderColor: '#e8e8e8',
+  },
+  gameCardDurationText: { fontSize: 10, color: '#999' },
 });

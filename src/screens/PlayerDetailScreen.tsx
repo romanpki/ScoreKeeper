@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { getPlayers, updatePlayer, deletePlayer, getGames } from '../storage/StorageService';
+import { getPlayers, updatePlayer, deletePlayer, getGames, saveGames } from '../storage/StorageService';
 import { Player, Game } from '../types';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'PlayerDetail'>;
@@ -74,7 +74,22 @@ export default function PlayerDetailScreen() {
 
   async function handleDelete() {
     if (hasActiveGame) {
-      Alert.alert('Impossible', 'Ce joueur a une partie en cours.');
+      Alert.alert(
+        `Supprimer ${player.name} ?`,
+        'Ce joueur est dans une partie en cours. La supprimer aussi ?',
+        [
+          { text: 'Annuler', style: 'cancel' },
+          {
+            text: 'Supprimer quand même', style: 'destructive',
+            onPress: async () => {
+              const allGames = await getGames();
+              await saveGames(allGames.filter(g => !g.playerIds.includes(playerId)));
+              await deletePlayer(playerId);
+              navigation.goBack();
+            },
+          },
+        ]
+      );
       return;
     }
     Alert.alert(
@@ -168,16 +183,16 @@ export default function PlayerDetailScreen() {
 
         {/* Supprimer */}
         <TouchableOpacity
-          style={[styles.deleteBtn, hasActiveGame && styles.deleteBtnDisabled]}
+          style={styles.deleteBtn}
           onPress={handleDelete}
         >
-          <Text style={[styles.deleteBtnText, hasActiveGame && styles.deleteBtnTextDisabled]}>
+          <Text style={styles.deleteBtnText}>
             Supprimer {player.name}
           </Text>
         </TouchableOpacity>
         {hasActiveGame && (
           <Text style={styles.deleteNote}>
-            Impossible — ce joueur a une partie en cours.
+            Ce joueur a une partie en cours.
           </Text>
         )}
 
