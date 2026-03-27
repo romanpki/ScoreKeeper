@@ -4,11 +4,12 @@ import {
 } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
+import * as DocumentPicker from 'expo-document-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { getGames, getPlayers, getAllGameConfigs } from '../storage/StorageService';
+import { getGames, saveGames, getPlayers, savePlayers, getAllGameConfigs } from '../storage/StorageService';
 import { Game, GameConfig, Player } from '../types';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'History'>;
@@ -92,6 +93,106 @@ export default function HistoryScreen() {
   const pagedGames = filteredGames.slice(0, visibleCount);
   const hasMore = filteredGames.length > visibleCount;
 
+  // ── Import CSV ─────────────────────────────────────────────────────────────
+
+  function parseCSVLine(line: string): string[] {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        inQuotes = !inQuotes;
+      } else if (ch === ',' && !inQuotes) {
+        result.push(current);
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+    result.push(current);
+    return result;
+  }
+
+  async function handleImportCSV() {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['text/csv', 'text/comma-separated-values', 'public.comma-separated-values-text'],
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled) return;
+
+      const content = await FileSystem.readAsStringAsync(result.assets[0].uri);
+      const lines = content.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      if (lines.length < 2) {
+        Alert.alert('Fichier invalide', 'Le CSV ne contient aucune donnée.');
+        return;
+      }
+
+      const [existingPlayers, existingGames, configs] = await Promise.all([
+        getPlayers(),
+        getGames(),
+        getAllGameConfigs(),
+      ]);
+
+      let imported = 0;
+      const newPlayers = [...existingPlayers];
+      const newGames = [...existingGames];
+
+      for (const line of lines.slice(1)) {
+        const fields = parseCSVLine(line);
+        if (fields.length < 4) continue;
+        const [gameName, dateStr, playersStr, winnerName] = fields;
+
+        const config = configs.find(c => c.name === gameName);
+        if (!config) continue;
+
+        const playerNames = playersStr.split(' / ').map(n => n.trim()).filter(Boolean);
+        const playerIds: string[] = [];
+        for (const name of playerNames) {
+          let player = newPlayers.find(p => p.name === name);
+          if (!player) {
+            player = {
+              id: Math.random().toString(36).slice(2) + Date.now().toString(36),
+              name,
+              color: '#6c63ff',
+              createdAt: Date.now(),
+            };
+            newPlayers.push(player);
+          }
+          playerIds.push(player.id);
+        }
+
+        const winner = newPlayers.find(p => p.name === winnerName);
+        const parts = dateStr.split('/');
+        const startedAt = parts.length === 3
+          ? new Date(+parts[2], +parts[1] - 1, +parts[0]).getTime()
+          : Date.now();
+
+        newGames.push({
+          id: Math.random().toString(36).slice(2) + Date.now().toString(36),
+          gameConfigId: config.id,
+          playerIds,
+          rounds: [],
+          status: 'finished',
+          winnerId: winner?.id ?? null,
+          startedAt,
+          finishedAt: startedAt,
+          metadata: {},
+        });
+        imported++;
+      }
+
+      await savePlayers(newPlayers);
+      await saveGames(newGames);
+      setGames(newGames.filter(g => g.status === 'finished').sort((a, b) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0)));
+      setPlayers(newPlayers);
+      Alert.alert('Import réussi', `${imported} partie${imported > 1 ? 's' : ''} importée${imported > 1 ? 's' : ''}.`);
+    } catch {
+      Alert.alert('Erreur', 'Impossible de lire le fichier CSV.');
+    }
+  }
+
   // ── Export CSV ─────────────────────────────────────────────────────────────
 
   async function handleExportCSV() {
@@ -142,9 +243,14 @@ export default function HistoryScreen() {
             <Text style={styles.back}>‹</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Historique</Text>
-          <TouchableOpacity onPress={handleExportCSV}>
-            <Text style={styles.exportBtn}>↑ CSV</Text>
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity onPress={handleImportCSV}>
+              <Text style={styles.exportBtn}>↓ CSV</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleExportCSV}>
+              <Text style={styles.exportBtn}>↑ CSV</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Recherche */}
@@ -366,6 +472,7 @@ const styles = StyleSheet.create({
   dot: { fontSize: 11, color: '#ccc' },
   othersScore: { fontSize: 11, color: '#888', flex: 1 },
   exportBtn: { fontSize: 13, color: PURPLE, fontWeight: '500' },
+  headerActions: { flexDirection: 'row', gap: 14, alignItems: 'center' },
   empty: { textAlign: 'center', color: '#aaa', marginTop: 40, fontSize: 15 },
   loadMoreBtn: {
     backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#e0e0e0',

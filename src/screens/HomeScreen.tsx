@@ -13,6 +13,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { getCurrentGames, getGames, saveGames, getPlayers, getAllGameConfigs } from '../storage/StorageService';
 import { Game, GameConfig, Player } from '../types';
+import { GAME_RULES } from '../data/gameRules';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -162,6 +163,7 @@ export default function HomeScreen() {
             {allConfigs.map((game, index) => {
               const isCustom = !!(game.specialRules as any)?.isCustom;
               const isLast = index === allConfigs.length - 1;
+              const rules = GAME_RULES[game.id];
               return (
                 <View
                   key={game.id}
@@ -180,6 +182,14 @@ export default function HomeScreen() {
                   <Text style={styles.gameListMeta}>
                     {game.minPlayers}–{game.maxPlayers} joueurs
                   </Text>
+                  {rules ? (
+                    <TouchableOpacity
+                      style={styles.rulesBtn}
+                      onPress={() => Alert.alert(`Règles — ${game.name}`, rules)}
+                    >
+                      <Text style={styles.rulesBtnText}>?</Text>
+                    </TouchableOpacity>
+                  ) : null}
                 </View>
               );
             })}
@@ -278,4 +288,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6, paddingVertical: 2,
   },
   customBadgeText: { fontSize: 10, color: PURPLE, fontWeight: '600' },
+  rulesBtn: {
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: PURPLE + '18',
+    borderWidth: 1, borderColor: PURPLE + '44',
+    alignItems: 'center', justifyContent: 'center',
+    marginLeft: 8,
+  },
+  rulesBtnText: { fontSize: 12, color: PURPLE, fontWeight: '700', lineHeight: 16 },
 });

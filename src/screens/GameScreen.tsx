@@ -61,9 +61,8 @@ export default function GameScreen() {
       const allPlayers = await getPlayers();
       setPlayers(allPlayers.filter(p => g.playerIds.includes(p.id)));
 
-      const initToZero = cfg?.id === 'papayoo' || cfg?.id === 'flip7' || cfg?.id === 'odin';
       const init: Record<string, string> = {};
-      g.playerIds.forEach(id => { init[id] = initToZero ? '0' : ''; });
+      g.playerIds.forEach(id => { init[id] = '0'; });
       setInputs(init);
       if (cfg?.inputType === 'bid') {
         const bids: Record<string, number> = {};
@@ -198,9 +197,12 @@ export default function GameScreen() {
   function handleForceEnd() {
     if (!game || game.rounds.length === 0) return;
     const currentLeader = determineWinner(game.rounds);
+    const winCondition = config?.scoreDirection === 'high'
+      ? 'Le plus de points gagne.'
+      : 'Le moins de points gagne.';
     Alert.alert(
       'Terminer la partie',
-      'Sélectionne le vainqueur :',
+      `${winCondition}\nSélectionne le vainqueur :`,
       [
         { text: 'Annuler', style: 'cancel' },
         ...players.map(p => ({
@@ -428,9 +430,8 @@ export default function GameScreen() {
     setFirstPlayerId(null);
     setFlip7Achieved(null);
 
-    const initToZero = config.id === 'papayoo' || config.id === 'flip7' || config.id === 'odin';
     const init: Record<string, string> = {};
-    game.playerIds.forEach(id => { init[id] = initToZero ? '0' : ''; });
+    game.playerIds.forEach(id => { init[id] = '0'; });
     setInputs(init);
 
     if (isFinished) {
