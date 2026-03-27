@@ -4,6 +4,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import AppNavigator from './src/navigation/AppNavigator';
 import { syncFromCloud } from './src/storage/StorageService';
+import CloudSyncToast from './src/components/CloudSyncToast';
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -35,6 +36,7 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style="auto" />
       <AppNavigator />
+      <CloudSyncToast />
     </GestureHandlerRootView>
   );
 }

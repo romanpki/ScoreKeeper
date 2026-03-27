@@ -6,6 +6,8 @@ import {
 import * as Haptics from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
 import { GAME_RULES } from '../data/gameRules';
+import { computeSkullKingScore } from '../games/skullking';
+import { computeSkyjoDoubling } from '../games/skyjo';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -252,8 +254,15 @@ export default function GameScreen() {
       finishedAt: isFinished ? Date.now() : null,
     };
 
-    await upsertGame(updatedGame);
+    const previousGame = game;
     setGame(updatedGame);
+    try {
+      await upsertGame(updatedGame);
+    } catch {
+      setGame(previousGame);
+      Alert.alert('Erreur', 'Impossible de sauvegarder la manche. Réessaie.');
+      return;
+    }
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setWinRoundWinner(null);
 
@@ -261,14 +270,6 @@ export default function GameScreen() {
       await Notifications.cancelAllScheduledNotificationsAsync();
       navigation.replace('EndGame', { gameId: game.id });
     }
-  }
-
-  // ── Skull King — calcul du score ─────────────────────────────────────────────
-
-  function computeSkullKingScore(bid: number, tricks: number, bonus14: number, bonusPirate: number, bonusSK: boolean, roundNum: number): number {
-    if (bid === 0) return tricks === 0 ? 10 * roundNum : -10 * roundNum;
-    if (bid === tricks) return 20 * bid + bonus14 * 10 + bonusPirate * 30 + (bonusSK ? 50 : 0);
-    return -10 * Math.abs(bid - tricks);
   }
 
   // ── Validation — Skull King ───────────────────────────────────────────────────
@@ -303,8 +304,15 @@ export default function GameScreen() {
       finishedAt: isFinished ? Date.now() : null,
     };
 
-    await upsertGame(updatedGame);
+    const previousGameSK = game;
     setGame(updatedGame);
+    try {
+      await upsertGame(updatedGame);
+    } catch {
+      setGame(previousGameSK);
+      Alert.alert('Erreur', 'Impossible de sauvegarder la manche. Réessaie.');
+      return;
+    }
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
     const bids: Record<string, number> = {};
@@ -372,19 +380,14 @@ export default function GameScreen() {
       rawValues[id] = parseInt(inputs[id], 10) || 0;
     });
 
-    const doubled: Record<string, boolean> = {};
-    if (config.id === 'skyjo' && firstPlayerId) {
-      const minScore = Math.min(...Object.values(rawValues));
-      if (rawValues[firstPlayerId] !== minScore) {
-        doubled[firstPlayerId] = true;
-        rawValues[firstPlayerId] *= 2;
-      }
-    }
+    const { values: finalValues, doubled } = config.id === 'skyjo'
+      ? computeSkyjoDoubling(rawValues, firstPlayerId)
+      : { values: rawValues, doubled: {} as Record<string, boolean> };
 
     const scores: Round['scores'] = {};
     game.playerIds.forEach(id => {
       const original = parseInt(inputs[id], 10) || 0;
-      const val = rawValues[id];
+      const val = finalValues[id];
       scores[id] = {
         rawInput: {
           value: original,
@@ -410,8 +413,15 @@ export default function GameScreen() {
       finishedAt: isFinished ? Date.now() : null,
     };
 
-    await upsertGame(updatedGame);
+    const previousGameNum = game;
     setGame(updatedGame);
+    try {
+      await upsertGame(updatedGame);
+    } catch {
+      setGame(previousGameNum);
+      Alert.alert('Erreur', 'Impossible de sauvegarder la manche. Réessaie.');
+      return;
+    }
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setFirstPlayerId(null);
     setFlip7Achieved(null);

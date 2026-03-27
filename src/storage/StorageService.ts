@@ -11,11 +11,22 @@ const KEYS = {
 
 // ── Sync iCloud ───────────────────────────────────────────────────────────────
 
+type SyncErrorListener = () => void;
+const syncErrorListeners: SyncErrorListener[] = [];
+
+export function addCloudSyncErrorListener(cb: SyncErrorListener): () => void {
+  syncErrorListeners.push(cb);
+  return () => {
+    const idx = syncErrorListeners.indexOf(cb);
+    if (idx >= 0) syncErrorListeners.splice(idx, 1);
+  };
+}
+
 async function writeToCloud(key: string, value: string): Promise<void> {
   try {
     await ICloudKVS.setString(key, value);
   } catch (e) {
-    // iCloud non disponible — on continue sans erreur
+    syncErrorListeners.forEach(cb => cb());
   }
 }
 
