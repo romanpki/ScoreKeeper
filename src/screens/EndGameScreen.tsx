@@ -43,6 +43,17 @@ export default function EndGameScreen() {
   ]).current;
   const scaleAnim = useRef(new Animated.Value(0.5)).current;
 
+  const CONFETTI_COUNT = 18;
+  const CONFETTI_COLORS = ['#6c63ff', '#EF9F27', '#0F6E56', '#E33B3B', '#4fc3f7', '#ab47bc', '#26a69a', '#ff7043', '#ffca28'];
+  const confettiAnims = useRef(
+    Array.from({ length: CONFETTI_COUNT }, () => ({
+      y: new Animated.Value(-20),
+      x: new Animated.Value(0),
+      opacity: new Animated.Value(1),
+      rotate: new Animated.Value(0),
+    }))
+  ).current;
+
   useEffect(() => {
     const load = async () => {
       const g = await getGameById(gameId);
@@ -62,6 +73,29 @@ export default function EndGameScreen() {
       Animated.timing(anim, { toValue: 1, duration: 450, useNativeDriver: false })
     )).start();
     Animated.spring(scaleAnim, { toValue: 1, friction: 4, useNativeDriver: true }).start();
+
+    confettiAnims.forEach((anim, i) => {
+      anim.y.setValue(-20);
+      anim.opacity.setValue(1);
+      anim.rotate.setValue(0);
+      anim.x.setValue(0);
+      const delay = i * 70;
+      const duration = 2000 + (i % 5) * 250;
+      Animated.parallel([
+        Animated.timing(anim.y, { toValue: 750, duration, delay, useNativeDriver: true }),
+        Animated.timing(anim.x, {
+          toValue: (i % 2 === 0 ? 1 : -1) * (20 + (i % 6) * 22),
+          duration, delay, useNativeDriver: true,
+        }),
+        Animated.timing(anim.rotate, {
+          toValue: (i % 2 === 0 ? 1 : -1) * (2 + (i % 4) * 2),
+          duration, delay, useNativeDriver: true,
+        }),
+        Animated.timing(anim.opacity, {
+          toValue: 0, duration: 500, delay: delay + 1600, useNativeDriver: true,
+        }),
+      ]).start();
+    });
   }, [game]);
 
   if (!game || !config) return null;
@@ -163,6 +197,32 @@ export default function EndGameScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      {/* Confetti */}
+      <View style={styles.confettiOverlay} pointerEvents="none">
+        {confettiAnims.map((anim, i) => {
+          const color = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
+          const startX = (i / CONFETTI_COUNT) * 340 - 10;
+          const rotateDeg = anim.rotate.interpolate({ inputRange: [-8, 8], outputRange: ['-360deg', '360deg'] });
+          return (
+            <Animated.View
+              key={i}
+              style={[
+                styles.confettiParticle,
+                {
+                  backgroundColor: color,
+                  left: startX,
+                  opacity: anim.opacity,
+                  transform: [
+                    { translateY: anim.y },
+                    { translateX: anim.x },
+                    { rotate: rotateDeg },
+                  ],
+                },
+              ]}
+            />
+          );
+        })}
+      </View>
       <ScrollView contentContainerStyle={styles.scroll}>
 
         {/* Titre */}
@@ -455,4 +515,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   btnOutlineText: { color: PURPLE, fontSize: 13, fontWeight: '500' },
+  confettiOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    zIndex: 10,
+  },
+  confettiParticle: {
+    position: 'absolute', top: 0,
+    width: 8, height: 14, borderRadius: 2,
+  },
 });
