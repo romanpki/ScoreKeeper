@@ -1,6 +1,7 @@
-import { NativeModules } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 
-const { ICloudKVS } = NativeModules;
+const { ICloudKVS: ICloudKVSModule } = NativeModules;
+const ICloudKVS = Platform.OS === 'ios' ? ICloudKVSModule : null;
 
 export default {
   async setString(key: string, value: string): Promise<void> {
