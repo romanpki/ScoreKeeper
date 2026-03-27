@@ -16,6 +16,8 @@ export type InputType = 'simple' | 'bid' | 'bonus' | 'wins';
 export interface GameConfig {
   id: string;
   name: string;
+  emoji?: string;
+  themeColor?: string;
   minPlayers: number;
   maxPlayers: number;
   scoreDirection: ScoreDirection;

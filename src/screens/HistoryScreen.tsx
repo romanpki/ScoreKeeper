@@ -32,15 +32,6 @@ function formatDateRelative(ts: number): string {
   return new Date(ts).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 }
 
-const GAME_COLORS: Record<string, { bg: string; text: string }> = {
-  skyjo:     { bg: '#E1F5EE', text: '#085041' },
-  skullking: { bg: '#EEEDFE', text: '#3C3489' },
-  flip7:     { bg: '#FAEEDA', text: '#633806' },
-  uno:       { bg: '#FDE8E8', text: '#8B0000' },
-  papayoo:   { bg: '#F0F0F0', text: '#444' },
-  odin:      { bg: '#E8F0FE', text: '#1A4C8B' },
-  trio:      { bg: '#FEF3E2', text: '#8B5E00' },
-};
 
 export default function HistoryScreen() {
   const navigation = useNavigation<NavProp>();
@@ -199,7 +190,7 @@ export default function HistoryScreen() {
                 style={[styles.filterChip, filter === g.id && styles.filterChipActive]}
                 onPress={() => { setFilter(g.id); setVisibleCount(PAGE_SIZE); }}
               >
-                <Text style={[styles.filterText, filter === g.id && styles.filterTextActive]}>{g.name}</Text>
+                <Text style={[styles.filterText, filter === g.id && styles.filterTextActive]}>{g.emoji ?? '🎮'} {g.name}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -245,7 +236,8 @@ export default function HistoryScreen() {
               {pagedGames.map(game => {
                 const config = allConfigs.find(c => c.id === game.gameConfigId);
                 const winner = players.find(p => p.id === game.winnerId);
-                const colors = GAME_COLORS[game.gameConfigId] ?? { bg: '#f0f0f0', text: '#444' };
+                const tc = config?.themeColor ?? '#666666';
+                const colors = { bg: tc + '22', text: tc };
                 const others = game.playerIds
                   .filter(id => id !== game.winnerId)
                   .map(id => {
@@ -264,7 +256,7 @@ export default function HistoryScreen() {
                   >
                     <View style={styles.gameCardTop}>
                       <View style={styles.gameCardLeft}>
-                        <Text style={styles.gameCardName}>{config?.name ?? '?'}</Text>
+                        <Text style={styles.gameCardName}>{config?.emoji ?? '🎮'} {config?.name ?? '?'}</Text>
                         <View style={[styles.gameCardBadge, { backgroundColor: colors.bg }]}>
                           <Text style={[styles.gameCardBadgeText, { color: colors.text }]}>
                             {game.rounds.length} manches

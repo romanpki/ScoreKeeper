@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, Share,
+  ScrollView, Share, Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -36,6 +36,13 @@ export default function EndGameScreen() {
   const [config, setConfig] = useState<GameConfig | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
 
+  const barAnims = useRef([
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0),
+  ]).current;
+  const scaleAnim = useRef(new Animated.Value(0.5)).current;
+
   useEffect(() => {
     const load = async () => {
       const g = await getGameById(gameId);
@@ -49,7 +56,18 @@ export default function EndGameScreen() {
     load();
   }, [gameId]);
 
+  useEffect(() => {
+    if (!game) return;
+    Animated.stagger(120, barAnims.map(anim =>
+      Animated.timing(anim, { toValue: 1, duration: 450, useNativeDriver: false })
+    )).start();
+    Animated.spring(scaleAnim, { toValue: 1, friction: 4, useNativeDriver: true }).start();
+  }, [game]);
+
   if (!game || !config) return null;
+
+  const themeColor = config.themeColor ?? '#0F6E56';
+  const themeBg = themeColor + '22';
 
   // ── Calcul des totaux et classement ──────────────────────────────────────────
 
@@ -151,7 +169,7 @@ export default function EndGameScreen() {
         <View style={styles.titleBlock}>
           <Text style={styles.subtitle}>Partie terminée</Text>
           <Text style={styles.gameTitle}>
-            {config.name} — {game.rounds.length} {game.rounds.length > 1 ? 'manches' : 'manche'}
+            {config.emoji ?? '🎮'} {config.name} — {game.rounds.length} {game.rounds.length > 1 ? 'manches' : 'manche'}
           </Text>
           <Text style={styles.dateText}>
             {formatDate(game.startedAt)}
@@ -165,13 +183,18 @@ export default function EndGameScreen() {
             const rankNum = entry ? ranks[entry.id] : i + 1;
             const isWinner = rankNum === 1;
             const height = podiumHeights[i];
+            const animatedHeight = barAnims[i].interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, height],
+            });
             return (
               <View key={entry.id} style={styles.podiumCol}>
                 {isWinner && <Text style={styles.star}>★</Text>}
-                <View style={[
+                <Animated.View style={[
                   styles.podiumAvatar,
-                  isWinner && styles.podiumAvatarWinner,
+                  isWinner && [styles.podiumAvatarWinner, { borderColor: themeColor }],
                   { backgroundColor: (entry.player?.color ?? '#999') + '33' },
+                  isWinner && { transform: [{ scale: scaleAnim }] },
                 ]}>
                   <Text style={[
                     styles.podiumAvatarText,
@@ -180,20 +203,24 @@ export default function EndGameScreen() {
                   ]}>
                     {entry.player?.name[0].toUpperCase() ?? '?'}
                   </Text>
-                </View>
+                </Animated.View>
                 <Text style={[styles.podiumName, isWinner && styles.podiumNameWinner]}>
                   {entry.player?.name ?? '?'}
                 </Text>
-                <Text style={[styles.podiumScore, isWinner && styles.podiumScoreWinner]}>
+                <Text style={[styles.podiumScore, isWinner && [styles.podiumScoreWinner, { color: themeColor }]]}>
                   {config.inputType === 'wins'
                     ? `${entry.total} ${entry.total > 1 ? 'victoires' : 'victoire'}`
                     : `${entry.total} pts`}
                 </Text>
-                <View style={[styles.podiumBar, { height }, isWinner && styles.podiumBarWinner]}>
-                  <Text style={[styles.podiumRank, isWinner && styles.podiumRankWinner]}>
+                <Animated.View style={[
+                  styles.podiumBar,
+                  { height: animatedHeight },
+                  isWinner && [styles.podiumBarWinner, { backgroundColor: themeBg }],
+                ]}>
+                  <Text style={[styles.podiumRank, isWinner && [styles.podiumRankWinner, { color: themeColor }]]}>
                     {rankNum}
                   </Text>
-                </View>
+                </Animated.View>
               </View>
             );
           })}
@@ -226,8 +253,8 @@ export default function EndGameScreen() {
               <Text style={[styles.cell, styles.totCol, styles.cellHeader]}>Tot</Text>
             </View>
             {ranked.map((entry) => (
-              <View key={entry.id} style={[styles.tableRow, ranks[entry.id] === 1 && styles.tableRowWinner]}>
-                <Text style={[styles.cell, styles.nameCol, ranks[entry.id] === 1 && styles.cellWinner]} numberOfLines={1}>
+              <View key={entry.id} style={[styles.tableRow, ranks[entry.id] === 1 && [styles.tableRowWinner, { backgroundColor: themeBg }]]}>
+                <Text style={[styles.cell, styles.nameCol, ranks[entry.id] === 1 && [styles.cellWinner, { color: themeColor }]]} numberOfLines={1}>
                   {entry.player?.name ?? '?'}
                 </Text>
                 {game.rounds.map(r => {
@@ -236,7 +263,7 @@ export default function EndGameScreen() {
                   const isWinRound = (score?.rawInput as any)?.winner;
                   if (config.inputType === 'wins') {
                     return (
-                      <Text key={r.roundNumber} style={[styles.cell, isWinRound && styles.cellWinRound, ranks[entry.id] === 1 && styles.cellWinner]}>
+                      <Text key={r.roundNumber} style={[styles.cell, isWinRound && styles.cellWinRound, ranks[entry.id] === 1 && [styles.cellWinner, { color: themeColor }]]}>
                         {isWinRound ? '✓' : ''}
                       </Text>
                     );
@@ -246,18 +273,18 @@ export default function EndGameScreen() {
                     const tricks = (score?.rawInput as any)?.tricks ?? '?';
                     const isOk = bid === tricks;
                     return (
-                      <Text key={r.roundNumber} style={[styles.cell, isOk ? styles.cellSKOk : styles.cellSKFail, ranks[entry.id] === 1 && styles.cellWinner]}>
+                      <Text key={r.roundNumber} style={[styles.cell, isOk ? styles.cellSKOk : styles.cellSKFail, ranks[entry.id] === 1 && [styles.cellWinner, { color: themeColor }]]}>
                         {bid}/{tricks}
                       </Text>
                     );
                   }
                   return (
-                    <Text key={r.roundNumber} style={[styles.cell, doubled && styles.cellDoubled, ranks[entry.id] === 1 && styles.cellWinner]}>
+                    <Text key={r.roundNumber} style={[styles.cell, doubled && styles.cellDoubled, ranks[entry.id] === 1 && [styles.cellWinner, { color: themeColor }]]}>
                       {score?.computed ?? '-'}
                     </Text>
                   );
                 })}
-                <Text style={[styles.cell, styles.totCol, styles.cellBold, ranks[entry.id] === 1 ? styles.cellWinner : styles.cellWorse]}>
+                <Text style={[styles.cell, styles.totCol, styles.cellBold, ranks[entry.id] === 1 ? [styles.cellWinner, { color: themeColor }] : styles.cellWorse]}>
                   {entry.total}
                 </Text>
               </View>

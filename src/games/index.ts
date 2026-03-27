@@ -4,6 +4,8 @@ export const GAME_CONFIGS: GameConfig[] = [
   {
     id: 'skyjo',
     name: 'Skyjo',
+    emoji: '❄️',
+    themeColor: '#085041',
     minPlayers: 2,
     maxPlayers: 8,
     scoreDirection: 'low',
@@ -16,6 +18,8 @@ export const GAME_CONFIGS: GameConfig[] = [
   {
     id: 'skullking',
     name: 'Skull King',
+    emoji: '☠️',
+    themeColor: '#3C3489',
     minPlayers: 2,
     maxPlayers: 8,
     scoreDirection: 'high',
@@ -28,6 +32,8 @@ export const GAME_CONFIGS: GameConfig[] = [
   {
     id: 'flip7',
     name: 'Flip 7',
+    emoji: '🃏',
+    themeColor: '#633806',
     minPlayers: 2,
     maxPlayers: 6,
     scoreDirection: 'high',
@@ -40,6 +46,8 @@ export const GAME_CONFIGS: GameConfig[] = [
   {
     id: 'uno',
     name: 'UNO',
+    emoji: '🎴',
+    themeColor: '#8B0000',
     minPlayers: 2,
     maxPlayers: 10,
     scoreDirection: 'high',
@@ -52,6 +60,8 @@ export const GAME_CONFIGS: GameConfig[] = [
   {
     id: 'papayoo',
     name: 'Papayoo',
+    emoji: '🥝',
+    themeColor: '#444444',
     minPlayers: 3,
     maxPlayers: 8,
     scoreDirection: 'low',
@@ -64,6 +74,8 @@ export const GAME_CONFIGS: GameConfig[] = [
   {
     id: 'odin',
     name: 'Odin',
+    emoji: '⚡',
+    themeColor: '#1A4C8B',
     minPlayers: 2,
     maxPlayers: 6,
     scoreDirection: 'low',
@@ -76,6 +88,8 @@ export const GAME_CONFIGS: GameConfig[] = [
   {
     id: 'trio',
     name: 'Trio',
+    emoji: '3️⃣',
+    themeColor: '#8B5E00',
     minPlayers: 3,
     maxPlayers: 6,
     scoreDirection: 'high',
