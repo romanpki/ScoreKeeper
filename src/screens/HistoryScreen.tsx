@@ -50,6 +50,9 @@ export default function HistoryScreen() {
   const [filter, setFilter] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'date' | 'game' | 'duration'>('date');
   const [searchQuery, setSearchQuery] = useState('');
+  const [visibleCount, setVisibleCount] = useState(20);
+
+  const PAGE_SIZE = 20;
 
   useEffect(() => {
     const load = async () => {
@@ -94,6 +97,9 @@ export default function HistoryScreen() {
     }
     return result;
   })();
+
+  const pagedGames = filteredGames.slice(0, visibleCount);
+  const hasMore = filteredGames.length > visibleCount;
 
   // ── Export CSV ─────────────────────────────────────────────────────────────
 
@@ -158,7 +164,7 @@ export default function HistoryScreen() {
             placeholder="Rechercher un jeu ou un joueur..."
             placeholderTextColor="#bbb"
             value={searchQuery}
-            onChangeText={setSearchQuery}
+            onChangeText={v => { setSearchQuery(v); setVisibleCount(PAGE_SIZE); }}
             clearButtonMode="while-editing"
           />
         </View>
@@ -169,7 +175,7 @@ export default function HistoryScreen() {
             <TouchableOpacity
               key={s}
               style={[styles.sortChip, sortBy === s && styles.sortChipActive]}
-              onPress={() => setSortBy(s)}
+              onPress={() => { setSortBy(s); setVisibleCount(PAGE_SIZE); }}
             >
               <Text style={[styles.sortText, sortBy === s && styles.sortTextActive]}>
                 {s === 'date' ? 'Date' : s === 'game' ? 'Jeu' : 'Durée'}
@@ -183,7 +189,7 @@ export default function HistoryScreen() {
           <View style={styles.filters}>
             <TouchableOpacity
               style={[styles.filterChip, filter === null && styles.filterChipActive]}
-              onPress={() => setFilter(null)}
+              onPress={() => { setFilter(null); setVisibleCount(PAGE_SIZE); }}
             >
               <Text style={[styles.filterText, filter === null && styles.filterTextActive]}>Toutes</Text>
             </TouchableOpacity>
@@ -191,7 +197,7 @@ export default function HistoryScreen() {
               <TouchableOpacity
                 key={g.id}
                 style={[styles.filterChip, filter === g.id && styles.filterChipActive]}
-                onPress={() => setFilter(g.id)}
+                onPress={() => { setFilter(g.id); setVisibleCount(PAGE_SIZE); }}
               >
                 <Text style={[styles.filterText, filter === g.id && styles.filterTextActive]}>{g.name}</Text>
               </TouchableOpacity>
@@ -236,7 +242,7 @@ export default function HistoryScreen() {
           <>
             <Text style={styles.sectionLabel}>PARTIES RÉCENTES</Text>
             <View style={styles.gamesList}>
-              {filteredGames.map(game => {
+              {pagedGames.map(game => {
                 const config = allConfigs.find(c => c.id === game.gameConfigId);
                 const winner = players.find(p => p.id === game.winnerId);
                 const colors = GAME_COLORS[game.gameConfigId] ?? { bg: '#f0f0f0', text: '#444' };
@@ -291,6 +297,17 @@ export default function HistoryScreen() {
               })}
             </View>
           </>
+        )}
+
+        {hasMore && (
+          <TouchableOpacity
+            style={styles.loadMoreBtn}
+            onPress={() => setVisibleCount(c => c + PAGE_SIZE)}
+          >
+            <Text style={styles.loadMoreText}>
+              Voir plus ({filteredGames.length - visibleCount} restantes)
+            </Text>
+          </TouchableOpacity>
         )}
 
         {filteredGames.length === 0 && (
@@ -358,6 +375,11 @@ const styles = StyleSheet.create({
   othersScore: { fontSize: 11, color: '#888', flex: 1 },
   exportBtn: { fontSize: 13, color: PURPLE, fontWeight: '500' },
   empty: { textAlign: 'center', color: '#aaa', marginTop: 40, fontSize: 15 },
+  loadMoreBtn: {
+    backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#e0e0e0',
+    paddingVertical: 14, alignItems: 'center',
+  },
+  loadMoreText: { fontSize: 14, color: PURPLE, fontWeight: '600' },
   searchRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: '#fff', borderRadius: 10,
