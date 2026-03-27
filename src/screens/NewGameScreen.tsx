@@ -41,6 +41,7 @@ export default function NewGameScreen() {
   // Recharge joueurs + jeux custom à chaque fois que l'écran est visible
   useFocusEffect(
     useCallback(() => {
+      setColorPickerPlayerId(null);
       async function loadData() {
         const p = await getPlayers();
         setPlayers([...p].sort((a, b) => a.name.localeCompare(b.name)));

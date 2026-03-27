@@ -171,8 +171,7 @@ export default function PlayersScreen() {
         {/* Info */}
         <View style={styles.infoBox}>
           <Text style={styles.infoText}>
-            Tap sur un joueur pour voir ses stats, changer sa couleur, ou le supprimer.
-            Les joueurs avec des parties en cours ne peuvent pas être supprimés.
+            Tap sur un joueur pour voir ses stats ou changer sa couleur. Swipe vers la gauche pour supprimer un joueur.
           </Text>
         </View>
 

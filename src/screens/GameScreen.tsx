@@ -163,7 +163,7 @@ export default function GameScreen() {
   function checkEndCondition(rounds: Round[]): boolean {
     if (!config) return false;
     if (config.endCondition === 'threshold') {
-      const threshold = (game!.metadata as any)?.targetScore ?? config.endValue;
+      const threshold = game!.metadata?.targetScore ?? config.endValue;
       return game!.playerIds.some(id => {
         const total = rounds.reduce((s, r) => s + (r.scores[id]?.computed ?? 0), 0);
         return total >= threshold;
@@ -468,7 +468,7 @@ export default function GameScreen() {
   // ── Rendu ──────────────────────────────────────────────────────────────────────
 
   const roundNumber = game.rounds.length + 1;
-  const targetScore = (game.metadata as any)?.targetScore ?? config.endValue;
+  const targetScore = game.metadata?.targetScore ?? config.endValue;
 
   const endLabel = config.id === 'papayoo'
     ? `${game.playerIds.length} manches`

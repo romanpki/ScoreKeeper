@@ -128,11 +128,6 @@ export async function upsertGame(game: Game): Promise<void> {
   await saveGames(games);
 }
 
-export async function getCurrentGame(): Promise<Game | null> {
-  const games = await getGames();
-  return games.find(g => g.status === 'playing') ?? null;
-}
-
 export async function getCurrentGames(): Promise<Game[]> {
   const games = await getGames();
   return games.filter(g => g.status === 'playing')
