@@ -241,6 +241,16 @@ export default function EndGameScreen() {
                       </Text>
                     );
                   }
+                  if (config.inputType === 'bid') {
+                    const bid = (score?.rawInput as any)?.bid ?? '?';
+                    const tricks = (score?.rawInput as any)?.tricks ?? '?';
+                    const isOk = bid === tricks;
+                    return (
+                      <Text key={r.roundNumber} style={[styles.cell, isOk ? styles.cellSKOk : styles.cellSKFail, ranks[entry.id] === 1 && styles.cellWinner]}>
+                        {bid}/{tricks}
+                      </Text>
+                    );
+                  }
                   return (
                     <Text key={r.roundNumber} style={[styles.cell, doubled && styles.cellDoubled, ranks[entry.id] === 1 && styles.cellWinner]}>
                       {score?.computed ?? '-'}
@@ -369,6 +379,8 @@ const styles = StyleSheet.create({
   cellWorse: { color: '#1a1a1a' },
   cellDoubled: { color: RED, fontWeight: '500' },
   cellWinRound: { color: '#085041', fontWeight: '700' },
+  cellSKOk: { color: '#0F6E56', fontWeight: '700' },
+  cellSKFail: { color: '#A32D2D', fontWeight: '700' },
   nameCol: { width: 60, textAlign: 'left', paddingLeft: 6 },
   totCol: { width: 36 },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

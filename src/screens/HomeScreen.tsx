@@ -160,7 +160,7 @@ export default function HomeScreen() {
           </View>
           <View style={styles.gameList}>
             {allConfigs.map((game, index) => {
-              const unavailable = game.inputType === 'bid';
+              const unavailable = false;
               const isCustom = !!(game.specialRules as any)?.isCustom;
               const isLast = index === allConfigs.length - 1;
               return (
