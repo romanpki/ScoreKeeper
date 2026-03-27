@@ -29,6 +29,11 @@ export default function GameScreen() {
   const [elapsed, setElapsed] = useState<string>('');
   const [flip7Achieved, setFlip7Achieved] = useState<string | null>(null);
   const [winRoundWinner, setWinRoundWinner] = useState<string | null>(null);
+  const [skBids, setSkBids] = useState<Record<string, number>>({});
+  const [skTricks, setSkTricks] = useState<Record<string, number>>({});
+  const [skBonus14, setSkBonus14] = useState<Record<string, number>>({});
+  const [skBonusPirate, setSkBonusPirate] = useState<Record<string, number>>({});
+  const [skBonusSK, setSkBonusSK] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const load = async () => {
@@ -47,6 +52,15 @@ export default function GameScreen() {
       const init: Record<string, string> = {};
       g.playerIds.forEach(id => { init[id] = initToZero ? '0' : ''; });
       setInputs(init);
+      if (cfg?.inputType === 'bid') {
+        const bids: Record<string, number> = {};
+        const tricks: Record<string, number> = {};
+        const b14: Record<string, number> = {};
+        const bPirate: Record<string, number> = {};
+        const bSK: Record<string, boolean> = {};
+        g.playerIds.forEach(id => { bids[id] = 0; tricks[id] = 0; b14[id] = 0; bPirate[id] = 0; bSK[id] = false; });
+        setSkBids(bids); setSkTricks(tricks); setSkBonus14(b14); setSkBonusPirate(bPirate); setSkBonusSK(bSK);
+      }
     };
     load();
   }, [gameId]);
@@ -55,9 +69,16 @@ export default function GameScreen() {
     const interval = setInterval(() => {
       if (!game) return;
       const diff = Date.now() - game.startedAt;
-      const mins = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const mins = Math.floor((diff % 3600000) / 60000);
       const secs = Math.floor((diff % 60000) / 1000);
-      setElapsed(mins > 0 ? `${mins}min${secs > 0 ? ` ${secs}s` : ''}` : `${secs}s`);
+      if (hours > 0) {
+        setElapsed(`${hours}h${mins > 0 ? `${mins}min` : ''}`);
+      } else if (mins > 0) {
+        setElapsed(`${mins}min${secs > 0 ? ` ${secs}s` : ''}`);
+      } else {
+        setElapsed(`${secs}s`);
+      }
     }, 1000);
     return () => clearInterval(interval);
   }, [game?.startedAt]);
@@ -215,6 +236,62 @@ export default function GameScreen() {
     }
   }
 
+  // ── Skull King — calcul du score ─────────────────────────────────────────────
+
+  function computeSkullKingScore(bid: number, tricks: number, bonus14: number, bonusPirate: number, bonusSK: boolean, roundNum: number): number {
+    if (bid === 0) return tricks === 0 ? 10 * roundNum : -10 * roundNum;
+    if (bid === tricks) return 20 * bid + bonus14 * 10 + bonusPirate * 30 + (bonusSK ? 50 : 0);
+    return -10 * Math.abs(bid - tricks);
+  }
+
+  // ── Validation — Skull King ───────────────────────────────────────────────────
+
+  async function handleValidateSkullKing() {
+    if (!game || !config) return;
+    const roundNum = game.rounds.length + 1;
+    const scores: Round['scores'] = {};
+    game.playerIds.forEach(id => {
+      const bid = skBids[id] ?? 0;
+      const tricks = skTricks[id] ?? 0;
+      const b14 = skBonus14[id] ?? 0;
+      const bPirate = skBonusPirate[id] ?? 0;
+      const bSK = skBonusSK[id] ?? false;
+      const computed = computeSkullKingScore(bid, tricks, b14, bPirate, bSK, roundNum);
+      scores[id] = {
+        rawInput: { bid, tricks, bonus14: b14, bonusPirate: bPirate, bonusSK: bSK },
+        computed,
+        cumulative: getCumulative(id) + computed,
+      };
+    });
+
+    const newRound: Round = { roundNumber: roundNum, scores, timestamp: Date.now() };
+    const updatedRounds = [...game.rounds, newRound];
+    const isFinished = checkEndCondition(updatedRounds);
+
+    const updatedGame: Game = {
+      ...game,
+      rounds: updatedRounds,
+      status: isFinished ? 'finished' : 'playing',
+      winnerId: isFinished ? determineWinner(updatedRounds) : null,
+      finishedAt: isFinished ? Date.now() : null,
+    };
+
+    await upsertGame(updatedGame);
+    setGame(updatedGame);
+
+    const bids: Record<string, number> = {};
+    const tricks: Record<string, number> = {};
+    const b14: Record<string, number> = {};
+    const bPirate: Record<string, number> = {};
+    const bSK: Record<string, boolean> = {};
+    game.playerIds.forEach(id => { bids[id] = 0; tricks[id] = 0; b14[id] = 0; bPirate[id] = 0; bSK[id] = false; });
+    setSkBids(bids); setSkTricks(tricks); setSkBonus14(b14); setSkBonusPirate(bPirate); setSkBonusSK(bSK);
+
+    if (isFinished) {
+      navigation.replace('EndGame', { gameId: game.id });
+    }
+  }
+
   // ── Validation — jeux numériques ──────────────────────────────────────────────
 
   async function handleValidate() {
@@ -222,6 +299,10 @@ export default function GameScreen() {
 
     if (config.inputType === 'wins') {
       return handleValidateTrio();
+    }
+
+    if (config.inputType === 'bid') {
+      return handleValidateSkullKing();
     }
 
     const missing = game.playerIds.some(id => inputs[id].trim() === '');
@@ -413,6 +494,19 @@ export default function GameScreen() {
                         </Text>
                       );
                     }
+                    if (config.inputType === 'bid') {
+                      const bid = (score?.rawInput as any)?.bid ?? '?';
+                      const tricks = (score?.rawInput as any)?.tricks ?? '?';
+                      const isOk = bid === tricks;
+                      return (
+                        <Text
+                          key={r.roundNumber}
+                          style={[styles.tableCell, isOk ? styles.tableCellSKOk : styles.tableCellSKFail]}
+                        >
+                          {bid}/{tricks}
+                        </Text>
+                      );
+                    }
                     return (
                       <Text
                         key={r.roundNumber}
@@ -438,8 +532,97 @@ export default function GameScreen() {
         </View>
       )}
 
-      {/* ── Zone de saisie Trio ── */}
-      {config.inputType === 'wins' ? (
+      {/* ── Zone de saisie Skull King ── */}
+      {config.inputType === 'bid' ? (
+        <ScrollView contentContainerStyle={styles.inputs}>
+          <View style={styles.skDealerBanner}>
+            <Text style={styles.skDealerText}>
+              Donneur : <Text style={styles.skDealerName}>{players[(roundNumber - 1) % players.length]?.name ?? '?'}</Text>
+            </Text>
+          </View>
+          {players.map(player => {
+            const bid = skBids[player.id] ?? 0;
+            const tricks = skTricks[player.id] ?? 0;
+            const b14 = skBonus14[player.id] ?? 0;
+            const bPirate = skBonusPirate[player.id] ?? 0;
+            const bSK = skBonusSK[player.id] ?? false;
+            const preview = computeSkullKingScore(bid, tricks, b14, bPirate, bSK, roundNumber);
+            return (
+              <View key={player.id} style={styles.skCard}>
+                <View style={styles.skCardHeader}>
+                  <View style={[styles.avatar, { backgroundColor: player.color }]}>
+                    <Text style={styles.avatarText}>{player.name[0].toUpperCase()}</Text>
+                  </View>
+                  <Text style={styles.skPlayerName}>{player.name}</Text>
+                  <Text style={[styles.skPreview, preview >= 0 ? styles.skPreviewPos : styles.skPreviewNeg]}>
+                    {preview >= 0 ? '+' : ''}{preview} pts
+                  </Text>
+                </View>
+                <View style={styles.skRow}>
+                  <View style={styles.skField}>
+                    <Text style={styles.skFieldLabel}>Mise annoncée</Text>
+                    <View style={styles.skStepper}>
+                      <TouchableOpacity style={styles.stepBtn} onPress={() => setSkBids(p => ({ ...p, [player.id]: Math.max(0, bid - 1) }))}>
+                        <Text style={styles.stepBtnText}>−</Text>
+                      </TouchableOpacity>
+                      <Text style={styles.skStepValue}>{bid}</Text>
+                      <TouchableOpacity style={styles.stepBtn} onPress={() => setSkBids(p => ({ ...p, [player.id]: Math.min(roundNumber, bid + 1) }))}>
+                        <Text style={styles.stepBtnText}>+</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  <View style={styles.skField}>
+                    <Text style={styles.skFieldLabel}>Plis réalisés</Text>
+                    <View style={styles.skStepper}>
+                      <TouchableOpacity style={styles.stepBtn} onPress={() => setSkTricks(p => ({ ...p, [player.id]: Math.max(0, tricks - 1) }))}>
+                        <Text style={styles.stepBtnText}>−</Text>
+                      </TouchableOpacity>
+                      <Text style={styles.skStepValue}>{tricks}</Text>
+                      <TouchableOpacity style={styles.stepBtn} onPress={() => setSkTricks(p => ({ ...p, [player.id]: Math.min(roundNumber, tricks + 1) }))}>
+                        <Text style={styles.stepBtnText}>+</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+                <View style={styles.skBonusRow}>
+                  <View style={styles.skBonusField}>
+                    <Text style={styles.skBonusLabel}>Bonus 14 (+10 chaq.)</Text>
+                    <View style={styles.skBonusStepper}>
+                      <TouchableOpacity style={styles.skBonusBtn} onPress={() => setSkBonus14(p => ({ ...p, [player.id]: Math.max(0, b14 - 1) }))}>
+                        <Text style={styles.stepBtnText}>−</Text>
+                      </TouchableOpacity>
+                      <Text style={styles.skBonusValue}>{b14}</Text>
+                      <TouchableOpacity style={styles.skBonusBtn} onPress={() => setSkBonus14(p => ({ ...p, [player.id]: b14 + 1 }))}>
+                        <Text style={styles.stepBtnText}>+</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  <View style={styles.skBonusField}>
+                    <Text style={styles.skBonusLabel}>Pirates par SK (+30)</Text>
+                    <View style={styles.skBonusStepper}>
+                      <TouchableOpacity style={styles.skBonusBtn} onPress={() => setSkBonusPirate(p => ({ ...p, [player.id]: Math.max(0, bPirate - 1) }))}>
+                        <Text style={styles.stepBtnText}>−</Text>
+                      </TouchableOpacity>
+                      <Text style={styles.skBonusValue}>{bPirate}</Text>
+                      <TouchableOpacity style={styles.skBonusBtn} onPress={() => setSkBonusPirate(p => ({ ...p, [player.id]: bPirate + 1 }))}>
+                        <Text style={styles.stepBtnText}>+</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.skBonusSKToggle, bSK && styles.skBonusSKToggleOn]}
+                    onPress={() => setSkBonusSK(p => ({ ...p, [player.id]: !bSK }))}
+                  >
+                    <Text style={[styles.skBonusSKText, bSK && styles.skBonusSKTextOn]}>
+                      ☠️ par Sirène {bSK ? '+50 ✓' : '+50'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            );
+          })}
+        </ScrollView>
+      ) : config.inputType === 'wins' ? (
         <ScrollView contentContainerStyle={styles.inputs}>
           <View style={styles.firstPlayerSection}>
             <Text style={styles.firstPlayerLabel}>Qui a gagné la manche {roundNumber} ?</Text>
@@ -698,4 +881,42 @@ const styles = StyleSheet.create({
   papayooTotalBad: { color: '#E74C3C' },
   abandonBtn: { alignItems: 'center', paddingVertical: 6 },
   abandonBtnText: { fontSize: 13, color: '#bbb' },
+  // Skull King styles
+  skDealerBanner: {
+    backgroundColor: '#fff3e0', borderRadius: 10, padding: 12,
+    borderLeftWidth: 3, borderLeftColor: '#f39c12',
+  },
+  skDealerText: { fontSize: 14, color: '#888' },
+  skDealerName: { fontWeight: '700', color: '#1a1a1a' },
+  skCard: {
+    backgroundColor: '#fff', borderRadius: 14, padding: 14, gap: 12,
+  },
+  skCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  skPlayerName: { flex: 1, fontSize: 16, fontWeight: '600', color: '#1a1a1a' },
+  skPreview: { fontSize: 15, fontWeight: '700' },
+  skPreviewPos: { color: '#2ecc71' },
+  skPreviewNeg: { color: '#e74c3c' },
+  skRow: { flexDirection: 'row', gap: 16 },
+  skField: { flex: 1, alignItems: 'center', gap: 6 },
+  skFieldLabel: { fontSize: 12, color: '#888', fontWeight: '500' },
+  skStepper: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  skStepValue: { fontSize: 20, fontWeight: '700', color: '#1a1a1a', minWidth: 32, textAlign: 'center' },
+  skBonusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
+  skBonusField: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  skBonusLabel: { fontSize: 11, color: '#888' },
+  skBonusStepper: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  skBonusBtn: {
+    width: 24, height: 24, borderRadius: 12,
+    backgroundColor: '#f0f0f0', alignItems: 'center', justifyContent: 'center',
+  },
+  skBonusValue: { fontSize: 14, fontWeight: '600', color: '#1a1a1a', minWidth: 20, textAlign: 'center' },
+  skBonusSKToggle: {
+    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
+    backgroundColor: '#f0f0f0', borderWidth: 1, borderColor: '#e0e0e0',
+  },
+  skBonusSKToggleOn: { backgroundColor: '#fff3cd', borderColor: '#f39c12' },
+  skBonusSKText: { fontSize: 11, color: '#888', fontWeight: '500' },
+  skBonusSKTextOn: { color: '#f39c12', fontWeight: '700' },
+  tableCellSKOk: { color: '#2ecc71', fontWeight: '700' },
+  tableCellSKFail: { color: '#e74c3c', fontWeight: '700' },
 });
