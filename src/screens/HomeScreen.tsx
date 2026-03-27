@@ -96,7 +96,7 @@ export default function HomeScreen() {
                   onPress={() => navigation.navigate('Game', { gameId: game.id })}
                 >
                   <Text style={styles.currentGameName}>
-                    {allConfigs.find(g => g.id === game.gameConfigId)?.name ?? 'Jeu'}
+                    {allConfigs.find(g => g.id === game.gameConfigId)?.emoji ?? '🎮'} {allConfigs.find(g => g.id === game.gameConfigId)?.name ?? 'Jeu'}
                   </Text>
                  <Text style={styles.currentGameSub}>
   {game.playerIds
@@ -138,7 +138,7 @@ export default function HomeScreen() {
       onPress={() => navigation.navigate('EndGame', { gameId: game.id })}
     >
       <Text style={styles.recentName}>
-        {allConfigs.find(g => g.id === game.gameConfigId)?.name ?? 'Jeu'}
+        {allConfigs.find(g => g.id === game.gameConfigId)?.emoji ?? '🎮'} {allConfigs.find(g => g.id === game.gameConfigId)?.name ?? 'Jeu'}
         <Text style={styles.recentManches}> · {game.rounds.length} manches</Text>
       </Text>
       <Text style={styles.recentSub}>
@@ -169,7 +169,7 @@ export default function HomeScreen() {
                 >
                   <View style={styles.gameListLeft}>
                     <Text style={styles.gameListName}>
-                      {game.name}
+                      {game.emoji ?? '🎮'} {game.name}
                     </Text>
                     {isCustom && (
                       <View style={styles.customBadge}>

@@ -181,7 +181,7 @@ export default function NewGameScreen() {
                     <Text style={styles.deleteBtnText}>×</Text>
                   </TouchableOpacity>
                 )}
-                <Text style={styles.gameName}>{game.name}</Text>
+                <Text style={styles.gameName}>{game.emoji ?? '🎮'} {game.name}</Text>
                 <Text style={styles.gameMeta}>
                   {game.minPlayers}–{game.maxPlayers} joueurs
                 </Text>

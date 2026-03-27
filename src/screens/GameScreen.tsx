@@ -111,6 +111,8 @@ export default function GameScreen() {
 
   if (!game || !config) return null;
 
+  const themeColor = config.themeColor ?? '#6c63ff';
+
   // ── Cumulatif ────────────────────────────────────────────────────────────────
 
   function getCumulative(playerId: string): number {
@@ -501,13 +503,13 @@ export default function GameScreen() {
     <SafeAreaView style={styles.safe}>
 
       {/* En-tête */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderLeftColor: themeColor }]}>
         <View style={styles.headerInner}>
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => navigation.goBack()}>
               <Text style={styles.back}>‹</Text>
             </TouchableOpacity>
-            <Text style={styles.gameName}>{config.name}</Text>
+            <Text style={styles.gameName}>{config.emoji ?? '🎮'} {config.name}</Text>
             <View style={styles.headerMeta}>
               <Text style={styles.metaText}>{endLabel}</Text>
               {dirLabel ? (
@@ -852,7 +854,7 @@ export default function GameScreen() {
         </TouchableOpacity>
       )}
       {(!isSpectatorMode || forceInputMode) && <View style={styles.footer}>
-        <TouchableOpacity style={styles.validateBtn} onPress={handleValidate}>
+        <TouchableOpacity style={[styles.validateBtn, { backgroundColor: themeColor }]} onPress={handleValidate}>
           <Text style={styles.validateBtnText}>Valider la manche {roundNumber}</Text>
         </TouchableOpacity>
         <View style={styles.footerRow}>
