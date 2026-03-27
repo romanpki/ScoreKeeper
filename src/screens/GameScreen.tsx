@@ -311,6 +311,14 @@ export default function GameScreen() {
       return;
     }
 
+    if ((config.specialRules as any)?.allowNegative === false) {
+      const hasNegative = game.playerIds.some(id => parseInt(inputs[id], 10) < 0);
+      if (hasNegative) {
+        Alert.alert('Score invalide', 'Les scores négatifs ne sont pas autorisés pour ce jeu.');
+        return;
+      }
+    }
+
     if (config.id === 'papayoo') {
       const total = game.playerIds.reduce((sum, id) =>
         sum + (parseInt(inputs[id], 10) || 0), 0
