@@ -9,6 +9,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { addCustomGameConfig } from '../storage/StorageService';
 import { GameConfig } from '../types';
+import { useTheme } from '../context/ThemeContext';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'AddGame'>;
 
@@ -18,6 +19,7 @@ function generateId(): string {
 
 export default function AddGameScreen() {
   const navigation = useNavigation<NavProp>();
+  const { colors } = useTheme();
   const [name, setName] = useState('');
   const [minPlayers, setMinPlayers] = useState(2);
   const [maxPlayers, setMaxPlayers] = useState(6);
@@ -58,6 +60,8 @@ export default function AddGameScreen() {
     await addCustomGameConfig(config);
     navigation.goBack();
   }
+
+  const styles = makeStyles(colors);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -210,63 +214,65 @@ export default function AddGameScreen() {
 
 const PURPLE = '#6c63ff';
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f7f7f7' },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 14,
-    backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee',
-  },
-  back: { fontSize: 15, color: PURPLE, width: 60 },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: '#1a1a1a' },
-  scroll: { padding: 16, gap: 12 },
-  section: {
-    backgroundColor: '#fff', borderRadius: 14, padding: 16, gap: 12,
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 1,
-  },
-  sectionLabel: { fontSize: 13, fontWeight: '600', color: '#888', letterSpacing: 0.3 },
-  textInput: {
-    borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 16, color: '#1a1a1a', backgroundColor: '#fafafa',
-  },
-  steppersRow: { flexDirection: 'row', gap: 16 },
-  stepperGroup: { flex: 1, gap: 8 },
-  stepperLabel: { fontSize: 13, color: '#888' },
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  stepBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#f0f0f0', alignItems: 'center', justifyContent: 'center',
-  },
-  stepBtnText: { fontSize: 20, color: '#333', lineHeight: 24 },
-  stepValue: { fontSize: 20, fontWeight: '700', color: '#1a1a1a', minWidth: 28, textAlign: 'center' },
-  toggleRow: { flexDirection: 'row', gap: 8 },
-  toggleBtn: {
-    flex: 1, paddingVertical: 10, borderRadius: 10,
-    backgroundColor: '#f0f0f0', alignItems: 'center',
-    borderWidth: 1, borderColor: '#e0e0e0',
-  },
-  toggleBtnActive: { backgroundColor: PURPLE + '18', borderColor: PURPLE },
-  toggleText: { fontSize: 14, color: '#555' },
-  toggleTextActive: { color: PURPLE, fontWeight: '600' },
-  endValueRow: {
-    flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between', paddingTop: 4,
-  },
-  endValueLabel: { fontSize: 15, color: '#1a1a1a' },
-  endValueInput: {
-    width: 80, height: 42, borderRadius: 10,
-    borderWidth: 1, borderColor: PURPLE,
-    textAlign: 'center', fontSize: 18, fontWeight: '700', color: PURPLE,
-  },
-  footer: {
-    padding: 16, backgroundColor: '#fff',
-    borderTopWidth: 1, borderTopColor: '#eee',
-  },
-  createBtn: { backgroundColor: PURPLE, borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
-  createBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  switchRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-  },
-  switchLabel: { fontSize: 15, color: '#1a1a1a' },
-});
+function makeStyles(colors: ReturnType<typeof import('../context/ThemeContext').useTheme>['colors']) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.bg },
+    header: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      paddingHorizontal: 16, paddingVertical: 14,
+      backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border2,
+    },
+    back: { fontSize: 15, color: PURPLE, width: 60 },
+    headerTitle: { fontSize: 17, fontWeight: '700', color: colors.text },
+    scroll: { padding: 16, gap: 12 },
+    section: {
+      backgroundColor: colors.surface, borderRadius: 14, padding: 16, gap: 12,
+      shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 1,
+    },
+    sectionLabel: { fontSize: 13, fontWeight: '600', color: colors.textSub, letterSpacing: 0.3 },
+    textInput: {
+      borderWidth: 1, borderColor: colors.border, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 12,
+      fontSize: 16, color: colors.text, backgroundColor: colors.bg,
+    },
+    steppersRow: { flexDirection: 'row', gap: 16 },
+    stepperGroup: { flex: 1, gap: 8 },
+    stepperLabel: { fontSize: 13, color: colors.textSub },
+    stepper: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    stepBtn: {
+      width: 36, height: 36, borderRadius: 18,
+      backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center',
+    },
+    stepBtnText: { fontSize: 20, color: colors.text, lineHeight: 24 },
+    stepValue: { fontSize: 20, fontWeight: '700', color: colors.text, minWidth: 28, textAlign: 'center' },
+    toggleRow: { flexDirection: 'row', gap: 8 },
+    toggleBtn: {
+      flex: 1, paddingVertical: 10, borderRadius: 10,
+      backgroundColor: colors.surface2, alignItems: 'center',
+      borderWidth: 1, borderColor: colors.border,
+    },
+    toggleBtnActive: { backgroundColor: PURPLE + '18', borderColor: PURPLE },
+    toggleText: { fontSize: 14, color: colors.textSub },
+    toggleTextActive: { color: PURPLE, fontWeight: '600' },
+    endValueRow: {
+      flexDirection: 'row', alignItems: 'center',
+      justifyContent: 'space-between', paddingTop: 4,
+    },
+    endValueLabel: { fontSize: 15, color: colors.text },
+    endValueInput: {
+      width: 80, height: 42, borderRadius: 10,
+      borderWidth: 1, borderColor: PURPLE,
+      textAlign: 'center', fontSize: 18, fontWeight: '700', color: PURPLE,
+    },
+    footer: {
+      padding: 16, backgroundColor: colors.surface,
+      borderTopWidth: 1, borderTopColor: colors.border2,
+    },
+    createBtn: { backgroundColor: PURPLE, borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
+    createBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+    switchRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    },
+    switchLabel: { fontSize: 15, color: colors.text },
+  });
+}

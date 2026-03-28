@@ -11,6 +11,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { getGames, saveGames, getPlayers, savePlayers, getAllGameConfigs } from '../storage/StorageService';
 import { Game, GameConfig, Player } from '../types';
+import { useTheme } from '../context/ThemeContext';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'History'>;
 
@@ -36,6 +37,7 @@ function formatDateRelative(ts: number): string {
 
 export default function HistoryScreen() {
   const navigation = useNavigation<NavProp>();
+  const { colors } = useTheme();
   const [games, setGames] = useState<Game[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [allConfigs, setAllConfigs] = useState<GameConfig[]>([]);
@@ -233,6 +235,8 @@ export default function HistoryScreen() {
 
   // ── Rendu ──────────────────────────────────────────────────────────────────
 
+  const styles = makeStyles(colors);
+
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -419,86 +423,87 @@ export default function HistoryScreen() {
 
 const PURPLE = '#6c63ff';
 const GREEN = '#0F6E56';
-const GREEN_BG = '#E1F5EE';
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f7f7f7' },
-  scroll: { padding: 20, gap: 16 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 4 },
-  back: { fontSize: 28, color: PURPLE, lineHeight: 32 },
-  title: { fontSize: 18, fontWeight: '500', color: '#1a1a1a' },
-  filtersScroll: { marginHorizontal: -20 },
-  filters: { flexDirection: 'row', gap: 6, paddingHorizontal: 20 },
-  filterChip: {
-    paddingHorizontal: 14, paddingVertical: 6,
-    borderRadius: 20, backgroundColor: '#f0f0f0',
-    borderWidth: 1, borderColor: '#e0e0e0',
-  },
-  filterChipActive: { backgroundColor: '#EEEDFE', borderColor: '#CECBF6' },
-  filterText: { fontSize: 13, color: '#888' },
-  filterTextActive: { color: PURPLE, fontWeight: '500' },
-  sectionLabel: {
-    fontSize: 13, fontWeight: '500', color: '#aaa',
-    letterSpacing: 0.5, marginBottom: -8,
-  },
-  rankingList: { gap: 6 },
-  rankRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#f0f0f0', borderRadius: 10, padding: 10,
-  },
-  rankRowFirst: { backgroundColor: GREEN_BG, borderWidth: 1, borderColor: '#9FE1CB' },
-  rankNum: { fontSize: 14, fontWeight: '500', color: '#888', width: 20, textAlign: 'center' },
-  rankNumFirst: { color: GREEN },
-  rankAvatar: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  rankAvatarText: { fontSize: 13, fontWeight: '500' },
-  rankName: { flex: 1, fontSize: 14, fontWeight: '500', color: '#1a1a1a' },
-  rankNameFirst: { color: '#04342C' },
-  rankRight: { alignItems: 'flex-end' },
-  rankWins: { fontSize: 13, fontWeight: '500', color: '#1a1a1a' },
-  rankWinsFirst: { color: '#085041' },
-  rankMeta: { fontSize: 11, color: '#888', marginTop: 1 },
-  rankMetaFirst: { color: GREEN },
-  gamesList: { gap: 6 },
-  gameCard: { backgroundColor: '#f0f0f0', borderRadius: 10, padding: 12 },
-  gameCardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  gameCardLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  gameCardName: { fontSize: 13, fontWeight: '500', color: '#1a1a1a' },
-  gameCardBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
-  gameCardBadgeText: { fontSize: 11 },
-  gameCardDate: { fontSize: 11, color: '#aaa' },
-  gameCardScores: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  starIcon: { fontSize: 12, color: '#EF9F27' },
-  winnerScore: { fontSize: 12, fontWeight: '500', color: '#1a1a1a' },
-  dot: { fontSize: 11, color: '#ccc' },
-  othersScore: { fontSize: 11, color: '#888', flex: 1 },
-  exportBtn: { fontSize: 13, color: PURPLE, fontWeight: '500' },
-  headerActions: { flexDirection: 'row', gap: 14, alignItems: 'center' },
-  empty: { textAlign: 'center', color: '#aaa', marginTop: 40, fontSize: 15 },
-  loadMoreBtn: {
-    backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#e0e0e0',
-    paddingVertical: 14, alignItems: 'center',
-  },
-  loadMoreText: { fontSize: 14, color: PURPLE, fontWeight: '600' },
-  searchRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#fff', borderRadius: 10,
-    paddingHorizontal: 12, borderWidth: 1, borderColor: '#e0e0e0',
-  },
-  searchIcon: { fontSize: 14 },
-  searchInput: { flex: 1, paddingVertical: 10, fontSize: 14, color: '#1a1a1a' },
-  sortRow: { flexDirection: 'row', gap: 6 },
-  sortChip: {
-    paddingHorizontal: 14, paddingVertical: 6,
-    borderRadius: 20, backgroundColor: '#f0f0f0',
-    borderWidth: 1, borderColor: '#e0e0e0',
-  },
-  sortChipActive: { backgroundColor: '#EEEDFE', borderColor: '#CECBF6' },
-  sortText: { fontSize: 13, color: '#888' },
-  sortTextActive: { color: PURPLE, fontWeight: '500' },
-  gameCardDurationBadge: {
-    paddingHorizontal: 6, paddingVertical: 2,
-    borderRadius: 8, backgroundColor: '#f7f7f7',
-    borderWidth: 1, borderColor: '#e8e8e8',
-  },
-  gameCardDurationText: { fontSize: 10, color: '#999' },
-});
+function makeStyles(colors: ReturnType<typeof import('../context/ThemeContext').useTheme>['colors']) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.bg },
+    scroll: { padding: 20, gap: 16 },
+    header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 4 },
+    back: { fontSize: 28, color: PURPLE, lineHeight: 32 },
+    title: { fontSize: 18, fontWeight: '500', color: colors.text },
+    filtersScroll: { marginHorizontal: -20 },
+    filters: { flexDirection: 'row', gap: 6, paddingHorizontal: 20 },
+    filterChip: {
+      paddingHorizontal: 14, paddingVertical: 6,
+      borderRadius: 20, backgroundColor: colors.chipBg,
+      borderWidth: 1, borderColor: colors.border,
+    },
+    filterChipActive: { backgroundColor: colors.chipActiveBg, borderColor: PURPLE + '88' },
+    filterText: { fontSize: 13, color: colors.textSub },
+    filterTextActive: { color: PURPLE, fontWeight: '500' },
+    sectionLabel: {
+      fontSize: 13, fontWeight: '500', color: colors.textMuted,
+      letterSpacing: 0.5, marginBottom: -8,
+    },
+    rankingList: { gap: 6 },
+    rankRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+      backgroundColor: colors.surface2, borderRadius: 10, padding: 10,
+    },
+    rankRowFirst: { backgroundColor: colors.greenBg, borderWidth: 1, borderColor: colors.greenBorder },
+    rankNum: { fontSize: 14, fontWeight: '500', color: colors.textSub, width: 20, textAlign: 'center' },
+    rankNumFirst: { color: GREEN },
+    rankAvatar: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+    rankAvatarText: { fontSize: 13, fontWeight: '500' },
+    rankName: { flex: 1, fontSize: 14, fontWeight: '500', color: colors.text },
+    rankNameFirst: { color: colors.text },
+    rankRight: { alignItems: 'flex-end' },
+    rankWins: { fontSize: 13, fontWeight: '500', color: colors.text },
+    rankWinsFirst: { color: GREEN },
+    rankMeta: { fontSize: 11, color: colors.textSub, marginTop: 1 },
+    rankMetaFirst: { color: GREEN },
+    gamesList: { gap: 6 },
+    gameCard: { backgroundColor: colors.surface2, borderRadius: 10, padding: 12 },
+    gameCardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+    gameCardLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    gameCardName: { fontSize: 13, fontWeight: '500', color: colors.text },
+    gameCardBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
+    gameCardBadgeText: { fontSize: 11 },
+    gameCardDate: { fontSize: 11, color: colors.textMuted },
+    gameCardScores: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    starIcon: { fontSize: 12, color: '#EF9F27' },
+    winnerScore: { fontSize: 12, fontWeight: '500', color: colors.text },
+    dot: { fontSize: 11, color: colors.border },
+    othersScore: { fontSize: 11, color: colors.textSub, flex: 1 },
+    exportBtn: { fontSize: 13, color: PURPLE, fontWeight: '500' },
+    headerActions: { flexDirection: 'row', gap: 14, alignItems: 'center' },
+    empty: { textAlign: 'center', color: colors.textMuted, marginTop: 40, fontSize: 15 },
+    loadMoreBtn: {
+      backgroundColor: colors.surface, borderRadius: 12, borderWidth: 1, borderColor: colors.border,
+      paddingVertical: 14, alignItems: 'center',
+    },
+    loadMoreText: { fontSize: 14, color: PURPLE, fontWeight: '600' },
+    searchRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      backgroundColor: colors.searchBg, borderRadius: 10,
+      paddingHorizontal: 12, borderWidth: 1, borderColor: colors.border,
+    },
+    searchIcon: { fontSize: 14 },
+    searchInput: { flex: 1, paddingVertical: 10, fontSize: 14, color: colors.text },
+    sortRow: { flexDirection: 'row', gap: 6 },
+    sortChip: {
+      paddingHorizontal: 14, paddingVertical: 6,
+      borderRadius: 20, backgroundColor: colors.chipBg,
+      borderWidth: 1, borderColor: colors.border,
+    },
+    sortChipActive: { backgroundColor: colors.chipActiveBg, borderColor: PURPLE + '88' },
+    sortText: { fontSize: 13, color: colors.textSub },
+    sortTextActive: { color: PURPLE, fontWeight: '500' },
+    gameCardDurationBadge: {
+      paddingHorizontal: 6, paddingVertical: 2,
+      borderRadius: 8, backgroundColor: colors.surface,
+      borderWidth: 1, borderColor: colors.border,
+    },
+    gameCardDurationText: { fontSize: 10, color: colors.textSub },
+  });
+}

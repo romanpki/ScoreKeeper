@@ -13,6 +13,7 @@ import {
   getCustomGameConfigs, deleteCustomGameConfig, updatePlayer,
 } from '../storage/StorageService';
 import { GameConfig, Player } from '../types';
+import { useTheme } from '../context/ThemeContext';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'NewGame'>;
 type RouteType = RouteProp<RootStackParamList, 'NewGame'>;
@@ -27,6 +28,7 @@ function generateId(): string {
 export default function NewGameScreen() {
   const navigation = useNavigation<NavProp>();
   const route = useRoute<RouteType>();
+  const { colors } = useTheme();
   const preselectedGameId = route.params?.preselectedGameId;
 
   const [step, setStep] = useState<1 | 2>(1);
@@ -220,6 +222,8 @@ export default function NewGameScreen() {
 
   const needsTargetScore = selectedGame?.id === 'odin' || selectedGame?.id === 'trio';
 
+  const styles = makeStyles(colors);
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
@@ -323,84 +327,87 @@ export default function NewGameScreen() {
 
 const PURPLE = '#6c63ff';
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f7f7f7' },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 14,
-    backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee',
-  },
-  back: { fontSize: 15, color: PURPLE, width: 60 },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: '#1a1a1a' },
-  grid: { padding: 16, flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  gameCard: {
-    width: '47%', backgroundColor: '#fff', borderRadius: 14,
-    padding: 16, gap: 6,
-    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
-  },
-  gameName: { fontSize: 17, fontWeight: '700', color: '#1a1a1a' },
-  gameMeta: { fontSize: 12, color: '#888' },
-  deleteBtn: {
-    position: 'absolute', top: 8, right: 10,
-    width: 22, height: 22, alignItems: 'center', justifyContent: 'center',
-  },
-  deleteBtnText: { fontSize: 20, color: '#bbb', lineHeight: 22 },
-  customBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: PURPLE + '18', borderRadius: 6,
-    paddingHorizontal: 6, paddingVertical: 2, marginTop: 2,
-  },
-  customBadgeText: { fontSize: 10, color: PURPLE, fontWeight: '600' },
-  addGameCard: {
-    borderStyle: 'dashed', borderWidth: 1.5, borderColor: '#ccc',
-    backgroundColor: '#fafafa', alignItems: 'center', justifyContent: 'center',
-    minHeight: 90,
-  },
-  addGameIcon: { fontSize: 28, color: '#bbb', lineHeight: 34 },
-  addGameText: { fontSize: 13, color: '#bbb', fontWeight: '500' },
-  scroll: { padding: 16, gap: 10 },
-  addRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
-  input: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 15, borderWidth: 1, borderColor: '#e0e0e0',
-  },
-  addBtn: {
-    backgroundColor: PURPLE, borderRadius: 10,
-    width: 46, alignItems: 'center', justifyContent: 'center',
-  },
-  addBtnText: { color: '#fff', fontSize: 24, fontWeight: '300' },
-  playerRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#fff', borderRadius: 12, padding: 12,
-    borderWidth: 2, borderColor: 'transparent',
-  },
-  playerRowSelected: { borderColor: PURPLE, backgroundColor: PURPLE + '0D' },
-  avatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  playerInfo: { flex: 1 },
-  playerName: { fontSize: 16, color: '#1a1a1a' },
-  colorPicker: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
-  colorDot: { width: 22, height: 22, borderRadius: 11 },
-  colorDotSelected: { borderWidth: 2.5, borderColor: '#1a1a1a', transform: [{ scale: 1.2 }] },
-  check: { fontSize: 18, color: PURPLE, fontWeight: '700' },
-  empty: { textAlign: 'center', color: '#aaa', marginTop: 32, fontSize: 15 },
-  footer: {
-    padding: 16, backgroundColor: '#fff',
-    borderTopWidth: 1, borderTopColor: '#eee', gap: 10,
-  },
-  footerMeta: { fontSize: 13, color: '#888', textAlign: 'center' },
-  startBtn: { backgroundColor: PURPLE, borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
-  startBtnDisabled: { backgroundColor: '#ccc' },
-  startBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  targetScoreRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#fff', borderRadius: 12, padding: 14,
-  },
-  targetScoreLabel: { fontSize: 15, color: '#1a1a1a', fontWeight: '500' },
-  targetScoreInput: {
-    width: 70, height: 40, borderRadius: 8,
-    borderWidth: 1, borderColor: PURPLE,
-    textAlign: 'center', fontSize: 16, fontWeight: '600', color: PURPLE,
-  },
-});
+function makeStyles(colors: ReturnType<typeof import('../context/ThemeContext').useTheme>['colors']) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.bg },
+    header: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      paddingHorizontal: 16, paddingVertical: 14,
+      backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border2,
+    },
+    back: { fontSize: 15, color: PURPLE, width: 60 },
+    headerTitle: { fontSize: 17, fontWeight: '700', color: colors.text },
+    grid: { padding: 16, flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    gameCard: {
+      width: '47%', backgroundColor: colors.surface, borderRadius: 14,
+      padding: 16, gap: 6,
+      shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
+    },
+    gameName: { fontSize: 17, fontWeight: '700', color: colors.text },
+    gameMeta: { fontSize: 12, color: colors.textSub },
+    deleteBtn: {
+      position: 'absolute', top: 8, right: 10,
+      width: 22, height: 22, alignItems: 'center', justifyContent: 'center',
+    },
+    deleteBtnText: { fontSize: 20, color: colors.textMuted, lineHeight: 22 },
+    customBadge: {
+      alignSelf: 'flex-start',
+      backgroundColor: PURPLE + '18', borderRadius: 6,
+      paddingHorizontal: 6, paddingVertical: 2, marginTop: 2,
+    },
+    customBadgeText: { fontSize: 10, color: PURPLE, fontWeight: '600' },
+    addGameCard: {
+      borderStyle: 'dashed', borderWidth: 1.5, borderColor: colors.border,
+      backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center',
+      minHeight: 90,
+    },
+    addGameIcon: { fontSize: 28, color: colors.textMuted, lineHeight: 34 },
+    addGameText: { fontSize: 13, color: colors.textMuted, fontWeight: '500' },
+    scroll: { padding: 16, gap: 10 },
+    addRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
+    input: {
+      flex: 1, backgroundColor: colors.surface, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 12,
+      fontSize: 15, borderWidth: 1, borderColor: colors.border,
+      color: colors.text,
+    },
+    addBtn: {
+      backgroundColor: PURPLE, borderRadius: 10,
+      width: 46, alignItems: 'center', justifyContent: 'center',
+    },
+    addBtnText: { color: '#fff', fontSize: 24, fontWeight: '300' },
+    playerRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      backgroundColor: colors.surface, borderRadius: 12, padding: 12,
+      borderWidth: 2, borderColor: 'transparent',
+    },
+    playerRowSelected: { borderColor: PURPLE, backgroundColor: PURPLE + '0D' },
+    avatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+    avatarText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+    playerInfo: { flex: 1 },
+    playerName: { fontSize: 16, color: colors.text },
+    colorPicker: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+    colorDot: { width: 22, height: 22, borderRadius: 11 },
+    colorDotSelected: { borderWidth: 2.5, borderColor: colors.text, transform: [{ scale: 1.2 }] },
+    check: { fontSize: 18, color: PURPLE, fontWeight: '700' },
+    empty: { textAlign: 'center', color: colors.textMuted, marginTop: 32, fontSize: 15 },
+    footer: {
+      padding: 16, backgroundColor: colors.surface,
+      borderTopWidth: 1, borderTopColor: colors.border2, gap: 10,
+    },
+    footerMeta: { fontSize: 13, color: colors.textSub, textAlign: 'center' },
+    startBtn: { backgroundColor: PURPLE, borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
+    startBtnDisabled: { backgroundColor: '#ccc' },
+    startBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+    targetScoreRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      backgroundColor: colors.surface, borderRadius: 12, padding: 14,
+    },
+    targetScoreLabel: { fontSize: 15, color: colors.text, fontWeight: '500' },
+    targetScoreInput: {
+      width: 70, height: 40, borderRadius: 8,
+      borderWidth: 1, borderColor: PURPLE,
+      textAlign: 'center', fontSize: 16, fontWeight: '600', color: PURPLE,
+    },
+  });
+}

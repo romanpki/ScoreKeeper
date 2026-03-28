@@ -14,11 +14,15 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { getCurrentGames, getGames, saveGames, getPlayers, getAllGameConfigs } from '../storage/StorageService';
 import { Game, GameConfig, Player } from '../types';
 import { GAME_RULES } from '../data/gameRules';
+import { useTheme } from '../context/ThemeContext';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
+const PURPLE = '#6c63ff';
+
 export default function HomeScreen() {
   const navigation = useNavigation<NavProp>();
+  const { colors, isDark, toggleTheme } = useTheme();
   const [currentGames, setCurrentGames] = useState<Game[]>([]);
   const [recentGames, setRecentGames] = useState<Game[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -65,14 +69,21 @@ export default function HomeScreen() {
     );
   }
 
+  const styles = makeStyles(colors);
+
   return (
     <SafeAreaView style={styles.safe}>
       {/* En-tête */}
       <View style={styles.header}>
         <Text style={styles.title}>ScoreKeeper</Text>
-        <TouchableOpacity style={styles.profileBtn} onPress={() => navigation.navigate('Players')}>
-          <Text style={styles.profileIcon}>👤</Text>
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.themeBtn} onPress={toggleTheme}>
+            <Text style={styles.themeBtnText}>{isDark ? '☀️' : '🌙'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.profileBtn} onPress={() => navigation.navigate('Players')}>
+            <Text style={styles.profileIcon}>👤</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -99,11 +110,11 @@ export default function HomeScreen() {
                   <Text style={styles.currentGameName}>
                     {allConfigs.find(g => g.id === game.gameConfigId)?.emoji ?? '🎮'} {allConfigs.find(g => g.id === game.gameConfigId)?.name ?? 'Jeu'}
                   </Text>
-                 <Text style={styles.currentGameSub}>
-  {game.playerIds
-    .map(id => players.find(p => p.id === id)?.name ?? '?')
-    .join(', ')} · Manche {game.rounds.length}
-</Text>
+                  <Text style={styles.currentGameSub}>
+                    {game.playerIds
+                      .map(id => players.find(p => p.id === id)?.name ?? '?')
+                      .join(', ')} · Manche {game.rounds.length}
+                  </Text>
                   <Text style={styles.currentGameResume}>Reprendre →</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -127,27 +138,27 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
             {recentGames.map(game => {
-  const winner = players.find(p => p.id === game.winnerId);
-  const others = game.playerIds
-    .filter(id => id !== game.winnerId)
-    .map(id => players.find(p => p.id === id)?.name ?? '?')
-    .join(', ');
-  return (
-    <TouchableOpacity
-      key={game.id}
-      style={styles.recentCard}
-      onPress={() => navigation.navigate('EndGame', { gameId: game.id })}
-    >
-      <Text style={styles.recentName}>
-        {allConfigs.find(g => g.id === game.gameConfigId)?.emoji ?? '🎮'} {allConfigs.find(g => g.id === game.gameConfigId)?.name ?? 'Jeu'}
-        <Text style={styles.recentManches}> · {game.rounds.length} manches</Text>
-      </Text>
-      <Text style={styles.recentSub}>
-        🏆 {winner?.name ?? '?'} · {others}
-      </Text>
-    </TouchableOpacity>
-  );
-})}
+              const winner = players.find(p => p.id === game.winnerId);
+              const others = game.playerIds
+                .filter(id => id !== game.winnerId)
+                .map(id => players.find(p => p.id === id)?.name ?? '?')
+                .join(', ');
+              return (
+                <TouchableOpacity
+                  key={game.id}
+                  style={styles.recentCard}
+                  onPress={() => navigation.navigate('EndGame', { gameId: game.id })}
+                >
+                  <Text style={styles.recentName}>
+                    {allConfigs.find(g => g.id === game.gameConfigId)?.emoji ?? '🎮'} {allConfigs.find(g => g.id === game.gameConfigId)?.name ?? 'Jeu'}
+                    <Text style={styles.recentManches}> · {game.rounds.length} manches</Text>
+                  </Text>
+                  <Text style={styles.recentSub}>
+                    🏆 {winner?.name ?? '?'} · {others}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
 
@@ -201,99 +212,99 @@ export default function HomeScreen() {
   );
 }
 
-const PURPLE = '#6c63ff';
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f7f7f7' },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  title: { fontSize: 22, fontWeight: 'bold', color: '#1a1a1a' },
-  profileBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: PURPLE + '18',
-    borderWidth: 1, borderColor: PURPLE + '44',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  profileIcon: { fontSize: 18 },
-  scroll: { padding: 20, gap: 24 },
-  primaryBtn: {
-    backgroundColor: PURPLE,
-    borderRadius: 14,
-    paddingVertical: 18,
-    alignItems: 'center',
-  },
-  primaryBtnText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  section: { gap: 12 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1a1a1a' },
-  seeAll: { fontSize: 14, color: PURPLE },
-  currentGameCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: PURPLE,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  currentGameName: { fontSize: 17, fontWeight: '700', color: '#1a1a1a' },
-  currentGameSub: { fontSize: 13, color: '#888', marginTop: 4 },
-  currentGameResume: { fontSize: 14, color: PURPLE, marginTop: 8, fontWeight: '600' },
-  abandonBtn: { marginTop: 10, alignSelf: 'flex-start' },
-  abandonBtnText: { fontSize: 12, color: '#bbb' },
-  recentCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 14,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
-  },
-  recentName: { fontSize: 15, fontWeight: '600', color: '#1a1a1a' },
-  recentSub: { fontSize: 13, color: '#888', marginTop: 2 },
-  recentManches: { fontSize: 13, color: '#aaa', fontWeight: '400' },
-  gameList: {
-    backgroundColor: '#fff', borderRadius: 12,
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 1,
-    overflow: 'hidden',
-  },
-  gameListRow: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 13,
-  },
-  gameListRowBorder: { borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  gameListLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  gameListName: { fontSize: 15, fontWeight: '500', color: '#1a1a1a' },
-  gameListNameDisabled: { color: '#bbb' },
-  gameListMeta: { fontSize: 12, color: '#aaa' },
-  gameListMetaDisabled: { color: '#ddd' },
-  soonBadge: {
-    backgroundColor: '#f0f0f0', borderRadius: 6,
-    paddingHorizontal: 6, paddingVertical: 2,
-  },
-  soonBadgeText: { fontSize: 10, color: '#bbb', fontWeight: '500' },
-  customBadge: {
-    backgroundColor: PURPLE + '18', borderRadius: 6,
-    paddingHorizontal: 6, paddingVertical: 2,
-  },
-  customBadgeText: { fontSize: 10, color: PURPLE, fontWeight: '600' },
-  rulesBtn: {
-    width: 22, height: 22, borderRadius: 11,
-    backgroundColor: PURPLE + '18',
-    borderWidth: 1, borderColor: PURPLE + '44',
-    alignItems: 'center', justifyContent: 'center',
-    marginLeft: 8,
-  },
-  rulesBtnText: { fontSize: 12, color: PURPLE, fontWeight: '700', lineHeight: 16 },
-});
+function makeStyles(colors: ReturnType<typeof import('../context/ThemeContext').useTheme>['colors']) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.bg },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      backgroundColor: colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border2,
+    },
+    title: { fontSize: 22, fontWeight: 'bold', color: colors.text },
+    headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    themeBtn: {
+      width: 36, height: 36, borderRadius: 18,
+      backgroundColor: colors.surface2,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    themeBtnText: { fontSize: 16 },
+    profileBtn: {
+      width: 36, height: 36, borderRadius: 18,
+      backgroundColor: PURPLE + '18',
+      borderWidth: 1, borderColor: PURPLE + '44',
+      alignItems: 'center', justifyContent: 'center',
+    },
+    profileIcon: { fontSize: 18 },
+    scroll: { padding: 20, gap: 24 },
+    primaryBtn: {
+      backgroundColor: PURPLE,
+      borderRadius: 14,
+      paddingVertical: 18,
+      alignItems: 'center',
+    },
+    primaryBtnText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+    section: { gap: 12 },
+    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
+    seeAll: { fontSize: 14, color: PURPLE },
+    currentGameCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: 16,
+      borderLeftWidth: 4,
+      borderLeftColor: PURPLE,
+      shadowColor: '#000',
+      shadowOpacity: 0.06,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    currentGameName: { fontSize: 17, fontWeight: '700', color: colors.text },
+    currentGameSub: { fontSize: 13, color: colors.textSub, marginTop: 4 },
+    currentGameResume: { fontSize: 14, color: PURPLE, marginTop: 8, fontWeight: '600' },
+    abandonBtn: { marginTop: 10, alignSelf: 'flex-start' },
+    abandonBtnText: { fontSize: 12, color: colors.textMuted },
+    recentCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: 14,
+      shadowColor: '#000',
+      shadowOpacity: 0.04,
+      shadowRadius: 6,
+      elevation: 1,
+    },
+    recentName: { fontSize: 15, fontWeight: '600', color: colors.text },
+    recentSub: { fontSize: 13, color: colors.textSub, marginTop: 2 },
+    recentManches: { fontSize: 13, color: colors.textMuted, fontWeight: '400' },
+    gameList: {
+      backgroundColor: colors.surface, borderRadius: 12,
+      shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 1,
+      overflow: 'hidden',
+    },
+    gameListRow: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingHorizontal: 16, paddingVertical: 13,
+    },
+    gameListRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.border2 },
+    gameListLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
+    gameListName: { fontSize: 15, fontWeight: '500', color: colors.text },
+    gameListMeta: { fontSize: 12, color: colors.textMuted },
+    customBadge: {
+      backgroundColor: PURPLE + '18', borderRadius: 6,
+      paddingHorizontal: 6, paddingVertical: 2,
+    },
+    customBadgeText: { fontSize: 10, color: PURPLE, fontWeight: '600' },
+    rulesBtn: {
+      width: 22, height: 22, borderRadius: 11,
+      backgroundColor: PURPLE + '18',
+      borderWidth: 1, borderColor: PURPLE + '44',
+      alignItems: 'center', justifyContent: 'center',
+      marginLeft: 8,
+    },
+    rulesBtnText: { fontSize: 12, color: PURPLE, fontWeight: '700', lineHeight: 16 },
+  });
+}
