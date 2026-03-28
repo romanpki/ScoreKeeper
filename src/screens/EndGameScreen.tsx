@@ -1,14 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, Share, Animated,
+  ScrollView, Share, Animated, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { getGameById, getPlayers, upsertGame, getAllGameConfigs } from '../storage/StorageService';
+import { getGameById, getPlayers, upsertGame, getAllGameConfigs, getGames, saveGames } from '../storage/StorageService';
 import { Game, GameConfig, Player } from '../types';
+import { useTheme } from '../context/ThemeContext';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'EndGame'>;
 type RouteType = RouteProp<RootStackParamList, 'EndGame'>;
@@ -31,6 +32,7 @@ export default function EndGameScreen() {
   const navigation = useNavigation<NavProp>();
   const route = useRoute<RouteType>();
   const { gameId } = route.params;
+  const { colors } = useTheme();
 
   const [game, setGame] = useState<Game | null>(null);
   const [config, setConfig] = useState<GameConfig | null>(null);
@@ -100,6 +102,7 @@ export default function EndGameScreen() {
 
   if (!game || !config) return null;
 
+  const styles = makeStyles(colors);
   const themeColor = config.themeColor ?? '#0F6E56';
   const themeBg = themeColor + '22';
 
@@ -193,10 +196,33 @@ export default function EndGameScreen() {
     });
   }
 
+  // ── Suppression ───────────────────────────────────────────────────────────────
+
+  async function handleDeleteGame() {
+    Alert.alert('Supprimer cette partie ?', 'Cette action est irréversible.', [
+      { text: 'Annuler', style: 'cancel' },
+      {
+        text: 'Supprimer', style: 'destructive',
+        onPress: async () => {
+          const all = await getGames();
+          await saveGames(all.filter(g => g.id !== gameId));
+          navigation.navigate('Home');
+        },
+      },
+    ]);
+  }
+
   // ── Rendu ─────────────────────────────────────────────────────────────────────
 
   return (
     <SafeAreaView style={styles.safe}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={styles.back}>‹</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Confetti */}
       <View style={styles.confettiOverlay} pointerEvents="none">
         {confettiAnims.map((anim, i) => {
@@ -392,17 +418,14 @@ export default function EndGameScreen() {
           </TouchableOpacity>
         </View>
         <TouchableOpacity
-  style={styles.btnPrimary}
-  onPress={() => navigation.navigate('Home')}
->
-  <Text style={styles.btnPrimaryText}>Retour à l'accueil</Text>
-</TouchableOpacity>
-<TouchableOpacity
-  style={styles.btnSecondaryFull}
-  onPress={() => navigation.navigate('History')}
->
-  <Text style={styles.btnSecondaryFullText}>Voir l'historique</Text>
-</TouchableOpacity>
+          style={styles.btnSecondaryFull}
+          onPress={() => navigation.navigate('History')}
+        >
+          <Text style={styles.btnSecondaryFullText}>Voir l'historique</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.btnDelete} onPress={handleDeleteGame}>
+          <Text style={styles.btnDeleteText}>Supprimer cette partie</Text>
+        </TouchableOpacity>
         <View style={styles.btnRow}>
           <TouchableOpacity style={styles.btnOutlineHalf} onPress={handleRevanche}>
             <Text style={styles.btnOutlineText}>Revanche (mêmes joueurs)</Text>
@@ -422,105 +445,104 @@ export default function EndGameScreen() {
 
 const PURPLE = '#6c63ff';
 const GREEN = '#0F6E56';
-const GREEN_BG = '#E1F5EE';
 const RED = '#A32D2D';
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f7f7f7' },
-  scroll: { padding: 20, gap: 16 },
-  titleBlock: { alignItems: 'center', paddingTop: 8 },
-  subtitle: { fontSize: 13, color: '#888', marginBottom: 4 },
-  gameTitle: { fontSize: 20, fontWeight: '500', color: '#1a1a1a' },
-  dateText: { fontSize: 12, color: '#aaa', marginTop: 4 },
-  star: { fontSize: 22, color: '#EF9F27', marginBottom: 4 },
-  podium: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: 12 },
-  podiumCol: { alignItems: 'center', width: 80 },
-  podiumAvatar: {
-    width: 44, height: 44, borderRadius: 22,
-    alignItems: 'center', justifyContent: 'center', marginBottom: 6,
-  },
-  podiumAvatarWinner: { width: 52, height: 52, borderRadius: 26, borderWidth: 2, borderColor: GREEN },
-  podiumAvatarText: { fontSize: 17, fontWeight: '500' },
-  podiumName: { fontSize: 13, fontWeight: '500', color: '#1a1a1a' },
-  podiumNameWinner: { fontSize: 14, color: '#1a1a1a' },
-  podiumScore: { fontSize: 12, color: '#888', marginBottom: 6 },
-  podiumScoreWinner: { fontSize: 13, fontWeight: '500', color: GREEN },
-  podiumBar: {
-    width: '100%', backgroundColor: '#f0f0f0',
-    borderRadius: 8, borderBottomLeftRadius: 0, borderBottomRightRadius: 0,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  podiumBarWinner: { backgroundColor: GREEN_BG },
-  podiumRank: { fontSize: 18, fontWeight: '500', color: '#888' },
-  podiumRankWinner: { fontSize: 22, color: GREEN },
-  extraRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#f0f0f0', borderRadius: 10, padding: 10,
-  },
-  extraAvatar: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  extraAvatarText: { fontSize: 9, fontWeight: '500' },
-  extraName: { flex: 1, fontSize: 13, color: '#1a1a1a' },
-  extraRank: { fontSize: 11, color: '#aaa' },
-  extraScore: { fontSize: 13, fontWeight: '500', color: RED },
-  sectionTitle: { fontSize: 14, fontWeight: '500', color: '#1a1a1a' },
-  tableScroll: { borderRadius: 12, overflow: 'hidden' },
-  table: { backgroundColor: '#fff', borderRadius: 12, padding: 8 },
-  tableRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4 },
-  tableRowWinner: { backgroundColor: GREEN_BG, borderRadius: 6 },
-  cell: { width: 40, textAlign: 'center', fontSize: 11, color: '#666' },
-  cellHeader: { fontWeight: '500', color: '#aaa', fontSize: 10 },
-  cellBold: { fontWeight: '500' },
-  cellWinner: { color: '#085041', fontWeight: '500' },
-  cellWorse: { color: '#1a1a1a' },
-  cellDoubled: { color: RED, fontWeight: '500' },
-  cellWinRound: { color: '#085041', fontWeight: '700' },
-  cellSKOk: { color: '#0F6E56', fontWeight: '700' },
-  cellSKFail: { color: '#A32D2D', fontWeight: '700' },
-  nameCol: { width: 60, textAlign: 'left', paddingLeft: 6 },
-  totCol: { width: 36 },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  statCard: {
-    width: '47%', backgroundColor: '#fff',
-    borderRadius: 10, padding: 10,
-  },
-  statLabel: { fontSize: 11, color: '#888', marginBottom: 2 },
-  statValue: { fontSize: 14, fontWeight: '500', color: '#1a1a1a' },
-  statBad: { color: RED },
-  btnRow: { flexDirection: 'row', gap: 8 },
-  btnSecondary: {
-    flex: 1, padding: 12, borderRadius: 12,
-    backgroundColor: '#fff', borderWidth: 1, borderColor: '#e0e0e0',
-    alignItems: 'center',
-  },
-  btnSecondaryText: { fontSize: 14, fontWeight: '500', color: '#1a1a1a' },
-  btnPrimary: {
-    backgroundColor: PURPLE, borderRadius: 12,
-    paddingVertical: 14, alignItems: 'center',
-  },
-  btnPrimaryText: { color: '#fff', fontSize: 15, fontWeight: '500' },
-  btnSecondaryFull: {
-    padding: 12, borderRadius: 12,
-    backgroundColor: '#fff', borderWidth: 1, borderColor: '#e0e0e0',
-    alignItems: 'center',
-  },
-  btnSecondaryFullText: { fontSize: 14, fontWeight: '500', color: '#1a1a1a' },
-  btnOutline: {
-    borderRadius: 12, paddingVertical: 12,
-    backgroundColor: '#fff', borderWidth: 1, borderColor: PURPLE + '66',
-    alignItems: 'center',
-  },
-  btnOutlineHalf: {
-    flex: 1, borderRadius: 12, paddingVertical: 12,
-    backgroundColor: '#fff', borderWidth: 1, borderColor: PURPLE + '66',
-    alignItems: 'center',
-  },
-  btnOutlineText: { color: PURPLE, fontSize: 13, fontWeight: '500' },
-  confettiOverlay: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    zIndex: 10,
-  },
-  confettiParticle: {
-    position: 'absolute', top: 0,
-    width: 8, height: 14, borderRadius: 2,
-  },
-});
+function makeStyles(colors: ReturnType<typeof import('../context/ThemeContext').useTheme>['colors']) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.bg },
+    header: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingHorizontal: 20, paddingVertical: 8,
+      backgroundColor: colors.bg,
+    },
+    back: { fontSize: 28, color: PURPLE, lineHeight: 32 },
+    scroll: { padding: 20, gap: 16 },
+    titleBlock: { alignItems: 'center', paddingTop: 8 },
+    subtitle: { fontSize: 13, color: colors.textSub, marginBottom: 4 },
+    gameTitle: { fontSize: 20, fontWeight: '500', color: colors.text },
+    dateText: { fontSize: 12, color: colors.textMuted, marginTop: 4 },
+    star: { fontSize: 22, color: '#EF9F27', marginBottom: 4 },
+    podium: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: 12 },
+    podiumCol: { alignItems: 'center', width: 80 },
+    podiumAvatar: {
+      width: 44, height: 44, borderRadius: 22,
+      alignItems: 'center', justifyContent: 'center', marginBottom: 6,
+    },
+    podiumAvatarWinner: { width: 52, height: 52, borderRadius: 26, borderWidth: 2, borderColor: GREEN },
+    podiumAvatarText: { fontSize: 17, fontWeight: '500' },
+    podiumName: { fontSize: 13, fontWeight: '500', color: colors.text },
+    podiumNameWinner: { fontSize: 14, color: colors.text },
+    podiumScore: { fontSize: 12, color: colors.textSub, marginBottom: 6 },
+    podiumScoreWinner: { fontSize: 13, fontWeight: '500', color: GREEN },
+    podiumBar: {
+      width: '100%', backgroundColor: colors.surface2,
+      borderRadius: 8, borderBottomLeftRadius: 0, borderBottomRightRadius: 0,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    podiumBarWinner: { backgroundColor: colors.greenBg },
+    podiumRank: { fontSize: 18, fontWeight: '500', color: colors.textSub },
+    podiumRankWinner: { fontSize: 22, color: GREEN },
+    extraRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+      backgroundColor: colors.surface2, borderRadius: 10, padding: 10,
+    },
+    extraAvatar: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+    extraAvatarText: { fontSize: 9, fontWeight: '500' },
+    extraName: { flex: 1, fontSize: 13, color: colors.text },
+    extraRank: { fontSize: 11, color: colors.textMuted },
+    extraScore: { fontSize: 13, fontWeight: '500', color: RED },
+    sectionTitle: { fontSize: 14, fontWeight: '500', color: colors.text },
+    tableScroll: { borderRadius: 12, overflow: 'hidden' },
+    table: { backgroundColor: colors.surface, borderRadius: 12, padding: 8 },
+    tableRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4 },
+    tableRowWinner: { backgroundColor: colors.greenBg, borderRadius: 6 },
+    cell: { width: 40, textAlign: 'center', fontSize: 11, color: colors.textSub },
+    cellHeader: { fontWeight: '500', color: colors.textMuted, fontSize: 10 },
+    cellBold: { fontWeight: '500' },
+    cellWinner: { color: GREEN, fontWeight: '500' },
+    cellWorse: { color: colors.text },
+    cellDoubled: { color: RED, fontWeight: '500' },
+    cellWinRound: { color: GREEN, fontWeight: '700' },
+    cellSKOk: { color: GREEN, fontWeight: '700' },
+    cellSKFail: { color: RED, fontWeight: '700' },
+    nameCol: { width: 60, textAlign: 'left', paddingLeft: 6 },
+    totCol: { width: 36 },
+    statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    statCard: {
+      width: '47%', backgroundColor: colors.surface,
+      borderRadius: 10, padding: 10,
+    },
+    statLabel: { fontSize: 11, color: colors.textSub, marginBottom: 2 },
+    statValue: { fontSize: 14, fontWeight: '500', color: colors.text },
+    statBad: { color: RED },
+    btnRow: { flexDirection: 'row', gap: 8 },
+    btnSecondary: {
+      flex: 1, padding: 12, borderRadius: 12,
+      backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
+      alignItems: 'center',
+    },
+    btnSecondaryText: { fontSize: 14, fontWeight: '500', color: colors.text },
+    btnSecondaryFull: {
+      padding: 12, borderRadius: 12,
+      backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
+      alignItems: 'center',
+    },
+    btnSecondaryFullText: { fontSize: 14, fontWeight: '500', color: colors.text },
+    btnDelete: { alignItems: 'center', paddingVertical: 10 },
+    btnDeleteText: { fontSize: 13, color: RED },
+    btnOutlineHalf: {
+      flex: 1, borderRadius: 12, paddingVertical: 12,
+      backgroundColor: colors.surface, borderWidth: 1, borderColor: PURPLE + '66',
+      alignItems: 'center',
+    },
+    btnOutlineText: { color: PURPLE, fontSize: 13, fontWeight: '500' },
+    confettiOverlay: {
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+      zIndex: 10,
+    },
+    confettiParticle: {
+      position: 'absolute', top: 0,
+      width: 8, height: 14, borderRadius: 2,
+    },
+  });
+}

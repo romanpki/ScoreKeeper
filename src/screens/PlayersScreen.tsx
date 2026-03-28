@@ -10,6 +10,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { Swipeable } from 'react-native-gesture-handler';
 import { getPlayers, addPlayer, deletePlayer, getCurrentGames, getGames, saveGames } from '../storage/StorageService';
 import { Player, Game } from '../types';
+import { useTheme } from '../context/ThemeContext';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'Players'>;
 
@@ -21,6 +22,7 @@ function generateId(): string {
 
 export default function PlayersScreen() {
   const navigation = useNavigation<NavProp>();
+  const { colors } = useTheme();
   const [players, setPlayers] = useState<Player[]>([]);
   const [games, setGames] = useState<Game[]>([]);
   const [search, setSearch] = useState('');
@@ -81,6 +83,8 @@ export default function PlayersScreen() {
   const filtered = players.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  const styles = makeStyles(colors);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -182,63 +186,65 @@ export default function PlayersScreen() {
 
 const PURPLE = '#6c63ff';
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f7f7f7' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 16, paddingVertical: 14,
-    backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee',
-  },
-  back: { fontSize: 28, color: PURPLE, lineHeight: 32 },
-  title: { flex: 1, fontSize: 18, fontWeight: '500', color: '#1a1a1a' },
-  count: { fontSize: 13, color: '#888' },
-  scroll: { padding: 16, gap: 16 },
-  searchRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#fff', borderRadius: 10,
-    paddingHorizontal: 12, borderWidth: 1, borderColor: '#e0e0e0',
-  },
-  searchIcon: { fontSize: 14 },
-  searchInput: { flex: 1, paddingVertical: 10, fontSize: 14, color: '#1a1a1a' },
-  list: { gap: 2 },
-  playerRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    padding: 10, borderRadius: 10, backgroundColor: '#fff',
-  },
-  avatar: {
-    width: 40, height: 40, borderRadius: 20,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  avatarText: { fontSize: 15, fontWeight: '500' },
-  playerInfo: { flex: 1 },
-  playerName: { fontSize: 14, fontWeight: '500', color: '#1a1a1a' },
-  playerStats: { fontSize: 12, color: '#888', marginTop: 2 },
-  chevron: { fontSize: 20, color: '#ccc' },
-  empty: { textAlign: 'center', color: '#aaa', paddingVertical: 20 },
-  addSection: {
-    backgroundColor: '#fff', borderRadius: 12, padding: 14, gap: 10,
-    borderTopWidth: 1, borderTopColor: '#eee',
-  },
-  addTitle: { fontSize: 13, fontWeight: '500', color: '#888' },
-  addRow: { flexDirection: 'row', gap: 8 },
-  addInput: {
-    flex: 1, borderWidth: 1, borderColor: '#e0e0e0',
-    borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
-    fontSize: 14, backgroundColor: '#fff',
-  },
-  addBtn: {
-    backgroundColor: PURPLE, borderRadius: 8,
-    paddingHorizontal: 16, justifyContent: 'center',
-  },
-  addBtnText: { color: '#fff', fontSize: 14, fontWeight: '500' },
-  infoBox: {
-    backgroundColor: '#f0f0f0', borderRadius: 10, padding: 12,
-  },
-  infoText: { fontSize: 12, color: '#888', lineHeight: 18 },
-  deleteAction: {
-    backgroundColor: '#E74C3C', borderRadius: 10,
-    justifyContent: 'center', alignItems: 'center',
-    paddingHorizontal: 20, marginLeft: 4,
-  },
-  deleteActionText: { color: '#fff', fontSize: 13, fontWeight: '600' },
-});
+function makeStyles(colors: ReturnType<typeof import('../context/ThemeContext').useTheme>['colors']) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.bg },
+    header: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      paddingHorizontal: 16, paddingVertical: 14,
+      backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border2,
+    },
+    back: { fontSize: 28, color: PURPLE, lineHeight: 32 },
+    title: { flex: 1, fontSize: 18, fontWeight: '500', color: colors.text },
+    count: { fontSize: 13, color: colors.textSub },
+    scroll: { padding: 16, gap: 16 },
+    searchRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      backgroundColor: colors.searchBg, borderRadius: 10,
+      paddingHorizontal: 12, borderWidth: 1, borderColor: colors.border,
+    },
+    searchIcon: { fontSize: 14 },
+    searchInput: { flex: 1, paddingVertical: 10, fontSize: 14, color: colors.text },
+    list: { gap: 2 },
+    playerRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      padding: 10, borderRadius: 10, backgroundColor: colors.surface,
+    },
+    avatar: {
+      width: 40, height: 40, borderRadius: 20,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    avatarText: { fontSize: 15, fontWeight: '500' },
+    playerInfo: { flex: 1 },
+    playerName: { fontSize: 14, fontWeight: '500', color: colors.text },
+    playerStats: { fontSize: 12, color: colors.textSub, marginTop: 2 },
+    chevron: { fontSize: 20, color: colors.border },
+    empty: { textAlign: 'center', color: colors.textMuted, paddingVertical: 20 },
+    addSection: {
+      backgroundColor: colors.surface, borderRadius: 12, padding: 14, gap: 10,
+      borderTopWidth: 1, borderTopColor: colors.border2,
+    },
+    addTitle: { fontSize: 13, fontWeight: '500', color: colors.textSub },
+    addRow: { flexDirection: 'row', gap: 8 },
+    addInput: {
+      flex: 1, borderWidth: 1, borderColor: colors.border,
+      borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
+      fontSize: 14, backgroundColor: colors.surface, color: colors.text,
+    },
+    addBtn: {
+      backgroundColor: PURPLE, borderRadius: 8,
+      paddingHorizontal: 16, justifyContent: 'center',
+    },
+    addBtnText: { color: '#fff', fontSize: 14, fontWeight: '500' },
+    infoBox: {
+      backgroundColor: colors.surface2, borderRadius: 10, padding: 12,
+    },
+    infoText: { fontSize: 12, color: colors.textSub, lineHeight: 18 },
+    deleteAction: {
+      backgroundColor: '#E74C3C', borderRadius: 10,
+      justifyContent: 'center', alignItems: 'center',
+      paddingHorizontal: 20, marginLeft: 4,
+    },
+    deleteActionText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  });
+}

@@ -9,6 +9,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { getPlayers, updatePlayer, deletePlayer, getGames, saveGames, getAllGameConfigs } from '../storage/StorageService';
 import { Player, Game, GameConfig } from '../types';
+import { useTheme } from '../context/ThemeContext';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'PlayerDetail'>;
 type RouteType = RouteProp<RootStackParamList, 'PlayerDetail'>;
@@ -22,6 +23,7 @@ const COLORS = [
 export default function PlayerDetailScreen() {
   const navigation = useNavigation<NavProp>();
   const route = useRoute<RouteType>();
+  const { colors } = useTheme();
   const { playerId } = route.params;
 
   const [player, setPlayer] = useState<Player | null>(null);
@@ -45,6 +47,7 @@ export default function PlayerDetailScreen() {
 
   if (!player) return null;
 
+  const styles = makeStyles(colors);
   const myGames = games.filter(g => g.playerIds.includes(playerId));
   const finishedGames = myGames.filter(g => g.status === 'finished');
   const wins = finishedGames.filter(g => g.winnerId === playerId).length;
@@ -239,56 +242,58 @@ export default function PlayerDetailScreen() {
 
 const PURPLE = '#6c63ff';
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f7f7f7' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 14,
-    backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee',
-  },
-  back: { fontSize: 28, color: PURPLE, lineHeight: 32 },
-  headerTitle: { fontSize: 17, fontWeight: '600', color: '#1a1a1a' },
-  scroll: { padding: 20, gap: 20 },
-  profileBlock: { alignItems: 'center', gap: 12, paddingVertical: 8 },
-  avatarLarge: {
-    width: 80, height: 80, borderRadius: 40,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  avatarLargeText: { fontSize: 32, fontWeight: '500' },
-  playerName: { fontSize: 22, fontWeight: '600', color: '#1a1a1a', textAlign: 'center' },
-  editHint: { fontSize: 16, color: '#aaa' },
-  editRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  editInput: {
-    borderWidth: 1, borderColor: PURPLE, borderRadius: 8,
-    paddingHorizontal: 12, paddingVertical: 8,
-    fontSize: 18, color: '#1a1a1a', minWidth: 160,
-  },
-  editSaveBtn: {
-    backgroundColor: PURPLE, borderRadius: 8,
-    paddingHorizontal: 14, paddingVertical: 8,
-  },
-  editSaveBtnText: { color: '#fff', fontWeight: '600' },
-  statsGrid: { flexDirection: 'row', gap: 10 },
-  statCard: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 12,
-    padding: 14, alignItems: 'center', gap: 4,
-  },
-  statValue: { fontSize: 22, fontWeight: '700', color: '#1a1a1a' },
-  statLabel: { fontSize: 12, color: '#888' },
-  section: { backgroundColor: '#fff', borderRadius: 12, padding: 14, gap: 12 },
-  sectionTitle: { fontSize: 14, fontWeight: '600', color: '#1a1a1a' },
-  colorGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  colorSwatch: { width: 36, height: 36, borderRadius: 18 },
-  colorSwatchSelected: {
-    borderWidth: 3, borderColor: '#1a1a1a',
-    transform: [{ scale: 1.15 }],
-  },
-  deleteBtn: {
-    borderWidth: 1, borderColor: '#E74C3C',
-    borderRadius: 12, paddingVertical: 14, alignItems: 'center',
-  },
-  deleteBtnDisabled: { borderColor: '#ddd' },
-  deleteBtnText: { color: '#E74C3C', fontSize: 15, fontWeight: '500' },
-  deleteBtnTextDisabled: { color: '#ccc' },
-  deleteNote: { textAlign: 'center', fontSize: 12, color: '#aaa', marginTop: -12 },
-});
+function makeStyles(colors: ReturnType<typeof import('../context/ThemeContext').useTheme>['colors']) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.bg },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 16, paddingVertical: 14,
+      backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border2,
+    },
+    back: { fontSize: 28, color: PURPLE, lineHeight: 32 },
+    headerTitle: { fontSize: 17, fontWeight: '600', color: colors.text },
+    scroll: { padding: 20, gap: 20 },
+    profileBlock: { alignItems: 'center', gap: 12, paddingVertical: 8 },
+    avatarLarge: {
+      width: 80, height: 80, borderRadius: 40,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    avatarLargeText: { fontSize: 32, fontWeight: '500' },
+    playerName: { fontSize: 22, fontWeight: '600', color: colors.text, textAlign: 'center' },
+    editHint: { fontSize: 16, color: colors.textMuted },
+    editRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+    editInput: {
+      borderWidth: 1, borderColor: PURPLE, borderRadius: 8,
+      paddingHorizontal: 12, paddingVertical: 8,
+      fontSize: 18, color: colors.text, minWidth: 160,
+    },
+    editSaveBtn: {
+      backgroundColor: PURPLE, borderRadius: 8,
+      paddingHorizontal: 14, paddingVertical: 8,
+    },
+    editSaveBtnText: { color: '#fff', fontWeight: '600' },
+    statsGrid: { flexDirection: 'row', gap: 10 },
+    statCard: {
+      flex: 1, backgroundColor: colors.surface, borderRadius: 12,
+      padding: 14, alignItems: 'center', gap: 4,
+    },
+    statValue: { fontSize: 22, fontWeight: '700', color: colors.text },
+    statLabel: { fontSize: 12, color: colors.textSub },
+    section: { backgroundColor: colors.surface, borderRadius: 12, padding: 14, gap: 12 },
+    sectionTitle: { fontSize: 14, fontWeight: '600', color: colors.text },
+    colorGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    colorSwatch: { width: 36, height: 36, borderRadius: 18 },
+    colorSwatchSelected: {
+      borderWidth: 3, borderColor: colors.text,
+      transform: [{ scale: 1.15 }],
+    },
+    deleteBtn: {
+      borderWidth: 1, borderColor: '#E74C3C',
+      borderRadius: 12, paddingVertical: 14, alignItems: 'center',
+    },
+    deleteBtnDisabled: { borderColor: colors.border },
+    deleteBtnText: { color: '#E74C3C', fontSize: 15, fontWeight: '500' },
+    deleteBtnTextDisabled: { color: colors.textMuted },
+    deleteNote: { textAlign: 'center', fontSize: 12, color: colors.textMuted, marginTop: -12 },
+  });
+}

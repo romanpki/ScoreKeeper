@@ -17,6 +17,7 @@ import {
   getAllGameConfigs,
 } from '../storage/StorageService';
 import { Game, GameConfig, Player, Round } from '../types';
+import { useTheme } from '../context/ThemeContext';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'Game'>;
 type RoutePropType = RouteProp<RootStackParamList, 'Game'>;
@@ -25,6 +26,7 @@ export default function GameScreen() {
   const navigation = useNavigation<NavProp>();
   const route = useRoute<RoutePropType>();
   const { gameId } = route.params;
+  const { colors } = useTheme();
 
   const [game, setGame] = useState<Game | null>(null);
   const [config, setConfig] = useState<GameConfig | null>(null);
@@ -110,6 +112,7 @@ export default function GameScreen() {
 
   if (!game || !config) return null;
 
+  const styles = makeStyles(colors);
   const themeColor = config.themeColor ?? '#6c63ff';
 
   // ── Cumulatif ────────────────────────────────────────────────────────────────
@@ -196,19 +199,15 @@ export default function GameScreen() {
 
   function handleForceEnd() {
     if (!game || game.rounds.length === 0) return;
-    const currentLeader = determineWinner(game.rounds);
-    const winCondition = config?.scoreDirection === 'high'
-      ? 'Le plus de points gagne.'
-      : 'Le moins de points gagne.';
+    const autoWinner = determineWinner(game.rounds);
+    const winnerPlayer = players.find(p => p.id === autoWinner);
+    const dirLabel = config?.scoreDirection === 'high' ? 'le plus de points' : 'le moins de points';
     Alert.alert(
       'Terminer la partie',
-      `${winCondition}\nSélectionne le vainqueur :`,
+      `${winnerPlayer?.name ?? '?'} est en tête (${dirLabel}).\n\nTerminer et déclarer vainqueur ?`,
       [
         { text: 'Annuler', style: 'cancel' },
-        ...players.map(p => ({
-          text: p.name + (p.id === currentLeader ? ' 👑' : ''),
-          onPress: () => forceEndGame(p.id),
-        })),
+        { text: 'Confirmer', onPress: () => forceEndGame(autoWinner) },
       ]
     );
   }
@@ -883,168 +882,168 @@ export default function GameScreen() {
 const PURPLE = '#6c63ff';
 const RED = '#e74c3c';
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f7f7f7' },
-  header: {
-    paddingHorizontal: 16, paddingVertical: 12,
-    backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee',
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-  },
-  headerInner: { flex: 1 },
-  headerTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  rulesBtn: {
-    width: 30, height: 30, borderRadius: 15,
-    backgroundColor: '#f0f0f0', alignItems: 'center', justifyContent: 'center',
-    marginLeft: 8,
-  },
-  rulesBtnText: { fontSize: 14, fontWeight: '700', color: '#888' },
-  back: { fontSize: 28, color: PURPLE, marginRight: 4, lineHeight: 32 },
-  gameName: { fontSize: 20, fontWeight: '700', color: '#1a1a1a' },
-  headerMeta: { flexDirection: 'row', alignItems: 'center', marginLeft: 8 },
-  metaText: { fontSize: 13, color: '#888' },
-  metaDot: { fontSize: 13, color: '#bbb' },
-  metaDir: { fontSize: 13, color: '#2ecc71', fontWeight: '600' },
-  roundSub: { fontSize: 13, color: '#aaa', marginTop: 2, marginLeft: 36 },
-  tableContainer: {
-    backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee',
-  },
-  table: { padding: 12 },
-  tableRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  nameCellWrap: { flexDirection: 'row', alignItems: 'center', width: 100, gap: 6 },
-  avatarSmall: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  avatarSmallText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  tableNameText: { fontSize: 13, color: '#1a1a1a', flex: 1 },
-  tableCell: { width: 48, textAlign: 'center', fontSize: 13, color: '#444' },
-  tableCellHeader: { fontWeight: '700', color: '#1a1a1a' },
-  tableCellDoubled: { color: RED, fontWeight: '700' },
-  tableCellFlip7: { color: '#F39C12', fontWeight: '700' },
-  tableCellWin: { color: '#2ecc71', fontWeight: '700', fontSize: 16 },
-  totalCell: { width: 56, fontWeight: '700' },
-  totalValue: { color: PURPLE },
-  noteRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, paddingHorizontal: 12, paddingBottom: 8 },
-  noteDot: { color: RED, fontSize: 10, marginTop: 3 },
-  noteText: { fontSize: 12, color: RED, flex: 1 },
-  inputs: { padding: 16, gap: 10 },
-  inputsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  inputsTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a1a' },
-  inputsHint: { fontSize: 12, color: '#aaa' },
-  inputRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#fff', borderRadius: 12, padding: 12,
-  },
-  avatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  playerName: { flex: 1, fontSize: 15, color: '#1a1a1a' },
-  inputControls: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  stepBtn: {
-    width: 32, height: 32, borderRadius: 16,
-    backgroundColor: '#f0f0f0', alignItems: 'center', justifyContent: 'center',
-  },
-  stepBtnText: { fontSize: 20, color: '#333', lineHeight: 24 },
-  scoreInput: {
-    width: 52, height: 38, borderRadius: 8,
-    backgroundColor: '#f7f7f7', borderWidth: 1, borderColor: '#e0e0e0',
-    fontSize: 16, fontWeight: '600',
-  },
-  previewTotal: { fontSize: 13, color: '#888', width: 44, textAlign: 'right' },
-  firstPlayerSection: {
-    backgroundColor: '#fff', borderRadius: 12, padding: 14, gap: 10, marginTop: 4,
-  },
-  firstPlayerLabel: { fontSize: 14, fontWeight: '600', color: '#1a1a1a' },
-  firstPlayerChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8,
-    backgroundColor: '#f0f0f0', borderWidth: 1, borderColor: '#e0e0e0',
-  },
-  chipSelected: { backgroundColor: PURPLE + '18', borderColor: PURPLE },
-  chipText: { fontSize: 14, color: '#555' },
-  chipTextSelected: { color: PURPLE, fontWeight: '600' },
-  // Trio win chips
-  winChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#fff', borderRadius: 14, padding: 14,
-    borderWidth: 2, borderColor: 'transparent',
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
-  },
-  winChipSelected: { borderColor: '#2ecc71', backgroundColor: '#e1f5ee' },
-  winChipAvatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  winChipAvatarText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  winChipText: { flex: 1, fontSize: 16, color: '#1a1a1a' },
-  winChipTextSelected: { color: '#085041', fontWeight: '600' },
-  winCheck: { fontSize: 18, color: '#2ecc71', fontWeight: '700' },
-  footer: {
-    padding: 16, backgroundColor: '#fff',
-    borderTopWidth: 1, borderTopColor: '#eee',
-  },
-  validateBtn: {
-    backgroundColor: PURPLE, borderRadius: 12,
-    paddingVertical: 16, alignItems: 'center', marginBottom: 8,
-  },
-  validateBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  forceEndBtn: { paddingVertical: 8, paddingHorizontal: 4 },
-  forceEndBtnText: { fontSize: 14, color: '#888', fontWeight: '500' },
-  undoBtn: { paddingVertical: 8, paddingHorizontal: 4 },
-  undoBtnText: { fontSize: 13, color: '#aaa' },
-  papayooTotal: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: '#fff', borderRadius: 12, padding: 14, marginHorizontal: 16,
-  },
-  papayooTotalLabel: { fontSize: 14, color: '#888' },
-  papayooTotalValue: { fontSize: 16, fontWeight: '700' },
-  papayooTotalOk: { color: '#2ECC71' },
-  papayooTotalBad: { color: '#E74C3C' },
-  abandonBtn: { alignItems: 'center', paddingVertical: 6 },
-  abandonBtnText: { fontSize: 13, color: '#bbb' },
-  // Skull King styles
-  skDealerBanner: {
-    backgroundColor: '#fff3e0', borderRadius: 10, padding: 12,
-    borderLeftWidth: 3, borderLeftColor: '#f39c12',
-  },
-  skDealerText: { fontSize: 14, color: '#888' },
-  skDealerName: { fontWeight: '700', color: '#1a1a1a' },
-  skCard: {
-    backgroundColor: '#fff', borderRadius: 14, padding: 14, gap: 12,
-  },
-  skCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  skPlayerName: { flex: 1, fontSize: 16, fontWeight: '600', color: '#1a1a1a' },
-  skPreview: { fontSize: 15, fontWeight: '700' },
-  skPreviewPos: { color: '#2ecc71' },
-  skPreviewNeg: { color: '#e74c3c' },
-  skRow: { flexDirection: 'row', gap: 16 },
-  skField: { flex: 1, alignItems: 'center', gap: 6 },
-  skFieldLabel: { fontSize: 12, color: '#888', fontWeight: '500' },
-  skStepper: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  skStepValue: { fontSize: 20, fontWeight: '700', color: '#1a1a1a', minWidth: 32, textAlign: 'center' },
-  skBonusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
-  skBonusField: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  skBonusLabel: { fontSize: 11, color: '#888' },
-  skBonusStepper: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  skBonusBtn: {
-    width: 24, height: 24, borderRadius: 12,
-    backgroundColor: '#f0f0f0', alignItems: 'center', justifyContent: 'center',
-  },
-  skBonusValue: { fontSize: 14, fontWeight: '600', color: '#1a1a1a', minWidth: 20, textAlign: 'center' },
-  skBonusSKToggle: {
-    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
-    backgroundColor: '#f0f0f0', borderWidth: 1, borderColor: '#e0e0e0',
-  },
-  skBonusSKToggleOn: { backgroundColor: '#fff3cd', borderColor: '#f39c12' },
-  skBonusSKText: { fontSize: 11, color: '#888', fontWeight: '500' },
-  skBonusSKTextOn: { color: '#f39c12', fontWeight: '700' },
-  tableCellSKOk: { color: '#2ecc71', fontWeight: '700' },
-  tableCellSKFail: { color: '#e74c3c', fontWeight: '700' },
-  spectatorFAB: {
-    position: 'absolute', bottom: 24, right: 24,
-    backgroundColor: PURPLE, borderRadius: 24,
-    paddingHorizontal: 20, paddingVertical: 12,
-    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, elevation: 6,
-    zIndex: 10,
-  },
-  spectatorFABText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  spectatorBack: {
-    backgroundColor: '#f0f0f0', paddingVertical: 10,
-    alignItems: 'center', borderTopWidth: 1, borderTopColor: '#eee',
-  },
-  spectatorBackText: { fontSize: 14, color: '#888' },
-});
+function makeStyles(colors: ReturnType<typeof import('../context/ThemeContext').useTheme>['colors']) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.bg },
+    header: {
+      paddingHorizontal: 16, paddingVertical: 12,
+      backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border2,
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    },
+    headerInner: { flex: 1 },
+    headerTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    rulesBtn: {
+      width: 30, height: 30, borderRadius: 15,
+      backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center',
+      marginLeft: 8,
+    },
+    rulesBtnText: { fontSize: 14, fontWeight: '700', color: colors.textSub },
+    back: { fontSize: 28, color: PURPLE, marginRight: 4, lineHeight: 32 },
+    gameName: { fontSize: 20, fontWeight: '700', color: colors.text },
+    headerMeta: { flexDirection: 'row', alignItems: 'center', marginLeft: 8 },
+    metaText: { fontSize: 13, color: colors.textSub },
+    metaDot: { fontSize: 13, color: colors.border },
+    metaDir: { fontSize: 13, color: '#2ecc71', fontWeight: '600' },
+    roundSub: { fontSize: 13, color: colors.textMuted, marginTop: 2, marginLeft: 36 },
+    tableContainer: {
+      backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border2,
+    },
+    table: { padding: 12 },
+    tableRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+    nameCellWrap: { flexDirection: 'row', alignItems: 'center', width: 100, gap: 6 },
+    avatarSmall: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+    avatarSmallText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+    tableNameText: { fontSize: 13, color: colors.text, flex: 1 },
+    tableCell: { width: 48, textAlign: 'center', fontSize: 13, color: colors.textSub },
+    tableCellHeader: { fontWeight: '700', color: colors.text },
+    tableCellDoubled: { color: RED, fontWeight: '700' },
+    tableCellFlip7: { color: '#F39C12', fontWeight: '700' },
+    tableCellWin: { color: '#2ecc71', fontWeight: '700', fontSize: 16 },
+    totalCell: { width: 56, fontWeight: '700' },
+    totalValue: { color: PURPLE },
+    noteRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, paddingHorizontal: 12, paddingBottom: 8 },
+    noteDot: { color: RED, fontSize: 10, marginTop: 3 },
+    noteText: { fontSize: 12, color: RED, flex: 1 },
+    inputs: { padding: 16, gap: 10 },
+    inputsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+    inputsTitle: { fontSize: 15, fontWeight: '700', color: colors.text },
+    inputsHint: { fontSize: 12, color: colors.textMuted },
+    inputRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      backgroundColor: colors.surface, borderRadius: 12, padding: 12,
+    },
+    avatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+    avatarText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+    playerName: { flex: 1, fontSize: 15, color: colors.text },
+    inputControls: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    stepBtn: {
+      width: 32, height: 32, borderRadius: 16,
+      backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center',
+    },
+    stepBtnText: { fontSize: 20, color: colors.text, lineHeight: 24 },
+    scoreInput: {
+      width: 52, height: 38, borderRadius: 8,
+      backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.border,
+      fontSize: 16, fontWeight: '600', color: colors.text,
+    },
+    previewTotal: { fontSize: 13, color: colors.textSub, width: 44, textAlign: 'right' },
+    firstPlayerSection: {
+      backgroundColor: colors.surface, borderRadius: 12, padding: 14, gap: 10, marginTop: 4,
+    },
+    firstPlayerLabel: { fontSize: 14, fontWeight: '600', color: colors.text },
+    firstPlayerChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    chip: {
+      borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8,
+      backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border,
+    },
+    chipSelected: { backgroundColor: PURPLE + '18', borderColor: PURPLE },
+    chipText: { fontSize: 14, color: colors.textSub },
+    chipTextSelected: { color: PURPLE, fontWeight: '600' },
+    winChip: {
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+      backgroundColor: colors.surface, borderRadius: 14, padding: 14,
+      borderWidth: 2, borderColor: 'transparent',
+      shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+    },
+    winChipSelected: { borderColor: '#2ecc71', backgroundColor: colors.greenBg },
+    winChipAvatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+    winChipAvatarText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+    winChipText: { flex: 1, fontSize: 16, color: colors.text },
+    winChipTextSelected: { color: '#0F6E56', fontWeight: '600' },
+    winCheck: { fontSize: 18, color: '#2ecc71', fontWeight: '700' },
+    footer: {
+      padding: 16, backgroundColor: colors.surface,
+      borderTopWidth: 1, borderTopColor: colors.border2,
+    },
+    validateBtn: {
+      backgroundColor: PURPLE, borderRadius: 12,
+      paddingVertical: 16, alignItems: 'center', marginBottom: 8,
+    },
+    validateBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+    footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    forceEndBtn: { paddingVertical: 8, paddingHorizontal: 4 },
+    forceEndBtnText: { fontSize: 14, color: colors.textSub, fontWeight: '500' },
+    undoBtn: { paddingVertical: 8, paddingHorizontal: 4 },
+    undoBtnText: { fontSize: 13, color: colors.textMuted },
+    papayooTotal: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      backgroundColor: colors.surface, borderRadius: 12, padding: 14, marginHorizontal: 16,
+    },
+    papayooTotalLabel: { fontSize: 14, color: colors.textSub },
+    papayooTotalValue: { fontSize: 16, fontWeight: '700' },
+    papayooTotalOk: { color: '#2ECC71' },
+    papayooTotalBad: { color: '#E74C3C' },
+    abandonBtn: { alignItems: 'center', paddingVertical: 6 },
+    abandonBtnText: { fontSize: 13, color: colors.textMuted },
+    skDealerBanner: {
+      backgroundColor: colors.surface2, borderRadius: 10, padding: 12,
+      borderLeftWidth: 3, borderLeftColor: '#f39c12',
+    },
+    skDealerText: { fontSize: 14, color: colors.textSub },
+    skDealerName: { fontWeight: '700', color: colors.text },
+    skCard: {
+      backgroundColor: colors.surface, borderRadius: 14, padding: 14, gap: 12,
+    },
+    skCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    skPlayerName: { flex: 1, fontSize: 16, fontWeight: '600', color: colors.text },
+    skPreview: { fontSize: 15, fontWeight: '700' },
+    skPreviewPos: { color: '#2ecc71' },
+    skPreviewNeg: { color: '#e74c3c' },
+    skRow: { flexDirection: 'row', gap: 16 },
+    skField: { flex: 1, alignItems: 'center', gap: 6 },
+    skFieldLabel: { fontSize: 12, color: colors.textSub, fontWeight: '500' },
+    skStepper: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    skStepValue: { fontSize: 20, fontWeight: '700', color: colors.text, minWidth: 32, textAlign: 'center' },
+    skBonusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
+    skBonusField: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    skBonusLabel: { fontSize: 11, color: colors.textSub },
+    skBonusStepper: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    skBonusBtn: {
+      width: 24, height: 24, borderRadius: 12,
+      backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center',
+    },
+    skBonusValue: { fontSize: 14, fontWeight: '600', color: colors.text, minWidth: 20, textAlign: 'center' },
+    skBonusSKToggle: {
+      borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
+      backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border,
+    },
+    skBonusSKToggleOn: { backgroundColor: '#3a2e0a', borderColor: '#f39c12' },
+    skBonusSKText: { fontSize: 11, color: colors.textSub, fontWeight: '500' },
+    skBonusSKTextOn: { color: '#f39c12', fontWeight: '700' },
+    tableCellSKOk: { color: '#2ecc71', fontWeight: '700' },
+    tableCellSKFail: { color: '#e74c3c', fontWeight: '700' },
+    spectatorFAB: {
+      position: 'absolute', bottom: 24, right: 24,
+      backgroundColor: PURPLE, borderRadius: 24,
+      paddingHorizontal: 20, paddingVertical: 12,
+      shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, elevation: 6,
+      zIndex: 10,
+    },
+    spectatorFABText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+    spectatorBack: {
+      backgroundColor: colors.surface2, paddingVertical: 10,
+      alignItems: 'center', borderTopWidth: 1, borderTopColor: colors.border2,
+    },
+    spectatorBackText: { fontSize: 14, color: colors.textSub },
+  });
+}
