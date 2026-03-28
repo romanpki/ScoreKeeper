@@ -522,14 +522,22 @@ export default function GameScreen() {
           </View>
           <Text style={styles.roundSub}>Manche {roundNumber}{elapsed ? ` · ${elapsed}` : ''}</Text>
         </View>
-        {GAME_RULES[config.id] && (
+        <View style={styles.headerBtns}>
+          {GAME_RULES[config.id] && (
+            <TouchableOpacity
+              style={styles.rulesBtn}
+              onPress={() => Alert.alert(`Règles — ${config.name}`, GAME_RULES[config.id])}
+            >
+              <Text style={styles.rulesBtnText}>?</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
-            style={styles.rulesBtn}
-            onPress={() => Alert.alert(`Règles — ${config.name}`, GAME_RULES[config.id])}
+            style={styles.fullRulesBtn}
+            onPress={() => navigation.navigate('Rules', { gameId: config.id })}
           >
-            <Text style={styles.rulesBtnText}>?</Text>
+            <Text style={styles.fullRulesBtnText}>Règles</Text>
           </TouchableOpacity>
-        )}
+        </View>
       </View>
 
       {/* Tableau des scores */}
@@ -898,6 +906,13 @@ function makeStyles(colors: ReturnType<typeof import('../context/ThemeContext').
       marginLeft: 8,
     },
     rulesBtnText: { fontSize: 14, fontWeight: '700', color: colors.textSub },
+    headerBtns: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    fullRulesBtn: {
+      paddingHorizontal: 10, paddingVertical: 6,
+      borderRadius: 8, backgroundColor: PURPLE + '18',
+      borderWidth: 1, borderColor: PURPLE + '44',
+    },
+    fullRulesBtnText: { fontSize: 12, color: PURPLE, fontWeight: '600' },
     back: { fontSize: 28, color: PURPLE, marginRight: 4, lineHeight: 32 },
     gameName: { fontSize: 20, fontWeight: '700', color: colors.text },
     headerMeta: { flexDirection: 'row', alignItems: 'center', marginLeft: 8 },

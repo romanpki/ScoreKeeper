@@ -10,6 +10,7 @@ import HistoryScreen from '../screens/HistoryScreen';
 import PlayersScreen from '../screens/PlayersScreen';
 import PlayerDetailScreen from '../screens/PlayerDetailScreen';
 import AddGameScreen from '../screens/AddGameScreen';
+import RulesScreen from '../screens/RulesScreen';
 
 export type RootStackParamList = {
   Home: undefined;
@@ -20,6 +21,7 @@ export type RootStackParamList = {
   Players: undefined;
   PlayerDetail: { playerId: string };
   AddGame: undefined;
+  Rules: { gameId: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -36,6 +38,7 @@ export default function AppNavigator() {
         <Stack.Screen name="Players" component={PlayersScreen} />
         <Stack.Screen name="PlayerDetail" component={PlayerDetailScreen} />
         <Stack.Screen name="AddGame" component={AddGameScreen} />
+        <Stack.Screen name="Rules" component={RulesScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
