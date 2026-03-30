@@ -29,7 +29,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export default function AppNavigator() {
   return (
     <NavigationContainer>
-      <Stack.Navigator id={undefined} initialRouteName="Home" screenOptions={{ headerShown: false }}>
+      <Stack.Navigator id={undefined} initialRouteName="Home" screenOptions={{ headerShown: false, animation: 'fade' }}>
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="NewGame" component={NewGameScreen} />
         <Stack.Screen name="Game" component={GameScreen} />

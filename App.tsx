@@ -5,7 +5,12 @@ import { StatusBar } from 'expo-status-bar';
 import AppNavigator from './src/navigation/AppNavigator';
 import { syncFromCloud } from './src/storage/StorageService';
 import CloudSyncToast from './src/components/CloudSyncToast';
-import { ThemeProvider } from './src/context/ThemeContext';
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
+
+function ThemedStatusBar() {
+  const { isDark } = useTheme();
+  return <StatusBar style={isDark ? 'light' : 'dark'} />;
+}
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -36,7 +41,7 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
-        <StatusBar style="auto" />
+        <ThemedStatusBar />
         <AppNavigator />
         <CloudSyncToast />
       </ThemeProvider>
