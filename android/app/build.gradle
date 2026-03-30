@@ -106,9 +106,9 @@ android {
         }
         release {
             storeFile file('scorekeeper.keystore')
-            storePassword System.getenv('KEYSTORE_PASSWORD') ?: ''
+            storePassword findProperty('SCOREKEEPER_STORE_PASSWORD') ?: System.getenv('KEYSTORE_PASSWORD') ?: ''
             keyAlias 'scorekeeper'
-            keyPassword System.getenv('KEYSTORE_PASSWORD') ?: ''
+            keyPassword findProperty('SCOREKEEPER_KEY_PASSWORD') ?: System.getenv('KEYSTORE_PASSWORD') ?: ''
         }
     }
     buildTypes {
