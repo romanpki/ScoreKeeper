@@ -30,6 +30,7 @@ export default function NewGameScreen() {
   const route = useRoute<RouteType>();
   const { colors } = useTheme();
   const preselectedGameId = route.params?.preselectedGameId;
+  const styles = makeStyles(colors);
 
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedGame, setSelectedGame] = useState<GameConfig | null>(null);
@@ -221,8 +222,6 @@ export default function NewGameScreen() {
     && selectedIds.length <= selectedGame.maxPlayers;
 
   const needsTargetScore = selectedGame?.id === 'odin' || selectedGame?.id === 'trio';
-
-  const styles = makeStyles(colors);
 
   return (
     <SafeAreaView style={styles.safe}>
