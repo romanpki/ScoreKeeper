@@ -10,6 +10,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { addCustomGameConfig } from '../storage/StorageService';
 import { GameConfig } from '../types';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'AddGame'>;
 
@@ -20,6 +21,7 @@ function generateId(): string {
 export default function AddGameScreen() {
   const navigation = useNavigation<NavProp>();
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const [name, setName] = useState('');
   const [minPlayers, setMinPlayers] = useState(2);
   const [maxPlayers, setMaxPlayers] = useState(6);
@@ -31,16 +33,16 @@ export default function AddGameScreen() {
   async function handleCreate() {
     const trimmedName = name.trim();
     if (!trimmedName) {
-      Alert.alert('Nom manquant', 'Donne un nom à ton jeu.');
+      Alert.alert(t('missingName'), t('missingNameMsg'));
       return;
     }
     if (maxPlayers < minPlayers) {
-      Alert.alert('Joueurs invalides', 'Le maximum doit être ≥ au minimum.');
+      Alert.alert(t('invalidPlayersMinMax'), t('invalidPlayersMinMaxMsg'));
       return;
     }
     const ev = parseInt(endValue, 10);
     if (isNaN(ev) || ev <= 0) {
-      Alert.alert('Valeur invalide', 'La valeur de fin doit être un nombre positif.');
+      Alert.alert(t('invalidEndValue'), t('invalidEndValueMsg'));
       return;
     }
 
@@ -67,9 +69,9 @@ export default function AddGameScreen() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.back}>← Retour</Text>
+          <Text style={styles.back}>{t('backTo')}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Nouveau jeu</Text>
+        <Text style={styles.headerTitle}>{t('addGameTitle')}</Text>
         <View style={{ width: 60 }} />
       </View>
 
@@ -77,10 +79,10 @@ export default function AddGameScreen() {
 
         {/* Nom */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Nom du jeu</Text>
+          <Text style={styles.sectionLabel}>{t('gameNameLabel')}</Text>
           <TextInput
             style={styles.textInput}
-            placeholder="Ex : 6 qui prend !"
+            placeholder={t('gameNamePlaceholder')}
             placeholderTextColor="#bbb"
             value={name}
             onChangeText={setName}
@@ -90,10 +92,10 @@ export default function AddGameScreen() {
 
         {/* Min / Max joueurs */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Nombre de joueurs</Text>
+          <Text style={styles.sectionLabel}>{t('playerCountLabel')}</Text>
           <View style={styles.steppersRow}>
             <View style={styles.stepperGroup}>
-              <Text style={styles.stepperLabel}>Minimum</Text>
+              <Text style={styles.stepperLabel}>{t('minimum')}</Text>
               <View style={styles.stepper}>
                 <TouchableOpacity
                   style={styles.stepBtn}
@@ -111,7 +113,7 @@ export default function AddGameScreen() {
               </View>
             </View>
             <View style={styles.stepperGroup}>
-              <Text style={styles.stepperLabel}>Maximum</Text>
+              <Text style={styles.stepperLabel}>{t('maximum')}</Text>
               <View style={styles.stepper}>
                 <TouchableOpacity
                   style={styles.stepBtn}
@@ -133,14 +135,14 @@ export default function AddGameScreen() {
 
         {/* Direction du score */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Objectif du score</Text>
+          <Text style={styles.sectionLabel}>{t('scoreObjectiveLabel')}</Text>
           <View style={styles.toggleRow}>
             <TouchableOpacity
               style={[styles.toggleBtn, direction === 'high' && styles.toggleBtnActive]}
               onPress={() => setDirection('high')}
             >
               <Text style={[styles.toggleText, direction === 'high' && styles.toggleTextActive]}>
-                ↑ Le + haut gagne
+                {t('highDirShort')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -148,7 +150,7 @@ export default function AddGameScreen() {
               onPress={() => setDirection('low')}
             >
               <Text style={[styles.toggleText, direction === 'low' && styles.toggleTextActive]}>
-                ↓ Le + bas gagne
+                {t('lowDirShort')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -156,14 +158,14 @@ export default function AddGameScreen() {
 
         {/* Fin de partie */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Fin de partie</Text>
+          <Text style={styles.sectionLabel}>{t('endConditionLabel')}</Text>
           <View style={styles.toggleRow}>
             <TouchableOpacity
               style={[styles.toggleBtn, endType === 'threshold' && styles.toggleBtnActive]}
               onPress={() => setEndType('threshold')}
             >
               <Text style={[styles.toggleText, endType === 'threshold' && styles.toggleTextActive]}>
-                Premier à X pts
+                {t('endAtXPts')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -171,13 +173,13 @@ export default function AddGameScreen() {
               onPress={() => setEndType('fixed')}
             >
               <Text style={[styles.toggleText, endType === 'fixed' && styles.toggleTextActive]}>
-                Après X manches
+                {t('afterXRounds')}
               </Text>
             </TouchableOpacity>
           </View>
           <View style={styles.endValueRow}>
             <Text style={styles.endValueLabel}>
-              {endType === 'threshold' ? 'Points pour gagner :' : 'Nombre de manches :'}
+              {endType === 'threshold' ? t('pointsToWinLabel') : t('roundsCountLabel')}
             </Text>
             <TextInput
               style={styles.endValueInput}
@@ -191,7 +193,7 @@ export default function AddGameScreen() {
         {/* Scores négatifs */}
         <View style={styles.section}>
           <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>Scores négatifs autorisés</Text>
+            <Text style={styles.switchLabel}>{t('negativeScoresLabel')}</Text>
             <Switch
               value={allowNegative}
               onValueChange={setAllowNegative}
@@ -205,7 +207,7 @@ export default function AddGameScreen() {
 
       <View style={styles.footer}>
         <TouchableOpacity style={styles.createBtn} onPress={handleCreate}>
-          <Text style={styles.createBtnText}>Créer le jeu</Text>
+          <Text style={styles.createBtnText}>{t('createGameBtn')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

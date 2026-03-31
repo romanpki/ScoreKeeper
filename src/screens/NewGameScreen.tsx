@@ -188,16 +188,16 @@ export default function NewGameScreen() {
                 )}
                 <Text style={styles.gameName}>{game.emoji ?? '🎮'} {game.name}</Text>
                 <Text style={styles.gameMeta}>
-                  {game.minPlayers}–{game.maxPlayers} joueurs
+                  {game.minPlayers}–{game.maxPlayers} {t('players')}
                 </Text>
                 <Text style={styles.gameMeta}>
                   {game.inputType === 'wins'
-                    ? 'Tracker de victoires'
+                    ? t('winsTracker')
                     : game.scoreDirection === 'low' ? t('lowDir') : t('highDir')}
                 </Text>
                 {isCustom && (
                   <View style={styles.customBadge}>
-                    <Text style={styles.customBadgeText}>Perso</Text>
+                    <Text style={styles.customBadgeText}>{t('custom')}</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -229,7 +229,7 @@ export default function NewGameScreen() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => setStep(1)}>
-          <Text style={styles.back}>← {selectedGame?.name}</Text>
+          <Text style={styles.back}>{t('back')} {selectedGame?.name}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('playersStep')}</Text>
         <View style={{ width: 60 }} />
