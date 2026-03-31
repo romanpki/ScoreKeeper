@@ -11,6 +11,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 import { getPlayers, addPlayer, deletePlayer, getCurrentGames, getGames, saveGames } from '../storage/StorageService';
 import { Player, Game } from '../types';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'Players'>;
 
@@ -23,6 +24,7 @@ function generateId(): string {
 export default function PlayersScreen() {
   const navigation = useNavigation<NavProp>();
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const [players, setPlayers] = useState<Player[]>([]);
   const [games, setGames] = useState<Game[]>([]);
   const [search, setSearch] = useState('');
@@ -52,12 +54,12 @@ export default function PlayersScreen() {
     const currentGames = await getCurrentGames();
     const hasActiveGame = currentGames.some(g => g.playerIds.includes(playerId));
     const message = hasActiveGame
-      ? 'Ce joueur est dans une partie en cours. La supprimer aussi ?'
-      : 'Cette action est irréversible.';
-    Alert.alert(`Supprimer ${playerName} ?`, message, [
-      { text: 'Annuler', style: 'cancel' },
+      ? t('deletePlayerInGame')
+      : t('irreversible');
+    Alert.alert(t('deletePlayerTitle', { name: playerName }), message, [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Supprimer', style: 'destructive',
+        text: t('delete'), style: 'destructive',
         onPress: async () => {
           if (hasActiveGame) {
             const allGames = await getGames();
@@ -94,8 +96,8 @@ export default function PlayersScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.back}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Joueurs</Text>
-        <Text style={styles.count}>{players.length} joueurs</Text>
+        <Text style={styles.title}>{t('playersTitle')}</Text>
+        <Text style={styles.count}>{players.length} {t('players')}</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -105,7 +107,7 @@ export default function PlayersScreen() {
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
             style={styles.searchInput}
-            placeholder="Rechercher un joueur..."
+            placeholder={t('searchPlayerPlaceholder')}
             value={search}
             onChangeText={setSearch}
             clearButtonMode="while-editing"
@@ -124,7 +126,7 @@ export default function PlayersScreen() {
                     style={styles.deleteAction}
                     onPress={() => handleDelete(player.id, player.name)}
                   >
-                    <Text style={styles.deleteActionText}>Supprimer</Text>
+                    <Text style={styles.deleteActionText}>{t('delete')}</Text>
                   </TouchableOpacity>
                 )}
               >
@@ -140,8 +142,8 @@ export default function PlayersScreen() {
                   <View style={styles.playerInfo}>
                     <Text style={styles.playerName}>{player.name}</Text>
                     <Text style={styles.playerStats}>
-                      {stats.total} partie{stats.total > 1 ? 's' : ''}
-                      {stats.total > 0 ? ` · ${stats.wins} victoire${stats.wins > 1 ? 's' : ''}` : ''}
+                      {stats.total} {stats.total > 1 ? t('games') : t('game')}
+                      {stats.total > 0 ? ` · ${stats.wins} ${stats.wins > 1 ? t('wins') : t('win')}` : ''}
                     </Text>
                   </View>
                   <Text style={styles.chevron}>›</Text>
@@ -150,33 +152,31 @@ export default function PlayersScreen() {
             );
           })}
           {filtered.length === 0 && search.length > 0 && (
-            <Text style={styles.empty}>Aucun joueur trouvé.</Text>
+            <Text style={styles.empty}>{t('noPlayerFound')}</Text>
           )}
         </View>
 
         {/* Ajouter un joueur */}
         <View style={styles.addSection}>
-          <Text style={styles.addTitle}>Ajouter un joueur</Text>
+          <Text style={styles.addTitle}>{t('addPlayerTitle')}</Text>
           <View style={styles.addRow}>
             <TextInput
               style={styles.addInput}
-              placeholder="Prénom"
+              placeholder={t('firstNamePlaceholder')}
               value={newName}
               onChangeText={setNewName}
               onSubmitEditing={handleAdd}
               returnKeyType="done"
             />
             <TouchableOpacity style={styles.addBtn} onPress={handleAdd}>
-              <Text style={styles.addBtnText}>Ajouter</Text>
+              <Text style={styles.addBtnText}>{t('addBtn')}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Info */}
         <View style={styles.infoBox}>
-          <Text style={styles.infoText}>
-            Tap sur un joueur pour voir ses stats ou changer sa couleur. Swipe vers la gauche pour supprimer un joueur.
-          </Text>
+          <Text style={styles.infoText}>{t('playersInfoText')}</Text>
         </View>
 
       </ScrollView>

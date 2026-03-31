@@ -10,6 +10,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { getPlayers, updatePlayer, deletePlayer, getGames, saveGames, getAllGameConfigs } from '../storage/StorageService';
 import { Player, Game, GameConfig } from '../types';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'PlayerDetail'>;
 type RouteType = RouteProp<RootStackParamList, 'PlayerDetail'>;
@@ -24,6 +25,7 @@ export default function PlayerDetailScreen() {
   const navigation = useNavigation<NavProp>();
   const route = useRoute<RouteType>();
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const { playerId } = route.params;
 
   const [player, setPlayer] = useState<Player | null>(null);
@@ -96,12 +98,12 @@ export default function PlayerDetailScreen() {
   async function handleDelete() {
     if (hasActiveGame) {
       Alert.alert(
-        `Supprimer ${player.name} ?`,
-        'Ce joueur est dans une partie en cours. La supprimer aussi ?',
+        t('deletePlayerTitle', { name: player.name }),
+        t('deletePlayerInGameDetail'),
         [
-          { text: 'Annuler', style: 'cancel' },
+          { text: t('cancel'), style: 'cancel' },
           {
-            text: 'Supprimer quand même', style: 'destructive',
+            text: t('deletePlayerForce'), style: 'destructive',
             onPress: async () => {
               const allGames = await getGames();
               await saveGames(allGames.filter(g => !g.playerIds.includes(playerId)));
@@ -114,12 +116,12 @@ export default function PlayerDetailScreen() {
       return;
     }
     Alert.alert(
-      `Supprimer ${player.name} ?`,
-      'Cette action est irréversible.',
+      t('deletePlayerTitle', { name: player.name }),
+      t('irreversible'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Supprimer', style: 'destructive',
+          text: t('delete'), style: 'destructive',
           onPress: async () => {
             await deletePlayer(playerId);
             navigation.goBack();
@@ -137,7 +139,7 @@ export default function PlayerDetailScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.back}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Fiche joueur</Text>
+        <Text style={styles.headerTitle}>{t('playerCard')}</Text>
         <View style={{ width: 32 }} />
       </View>
 
@@ -175,15 +177,15 @@ export default function PlayerDetailScreen() {
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>{finishedGames.length}</Text>
-            <Text style={styles.statLabel}>Parties</Text>
+            <Text style={styles.statLabel}>{t('gamesCount')}</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>{wins}</Text>
-            <Text style={styles.statLabel}>Victoires</Text>
+            <Text style={styles.statLabel}>{t('winsCount')}</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>{winRate}%</Text>
-            <Text style={styles.statLabel}>Taux de victoire</Text>
+            <Text style={styles.statLabel}>{t('winRate')}</Text>
           </View>
         </View>
 
@@ -193,13 +195,13 @@ export default function PlayerDetailScreen() {
             {favoriteGame && (
               <View style={[styles.statCard, { flex: 2 }]}>
                 <Text style={styles.statValue} numberOfLines={1}>{favoriteGame}</Text>
-                <Text style={styles.statLabel}>Jeu favori</Text>
+                <Text style={styles.statLabel}>{t('favoriteGame')}</Text>
               </View>
             )}
             {bestStreak > 1 && (
               <View style={styles.statCard}>
                 <Text style={styles.statValue}>{bestStreak}</Text>
-                <Text style={styles.statLabel}>Meilleure série</Text>
+                <Text style={styles.statLabel}>{t('bestStreak')}</Text>
               </View>
             )}
           </View>
@@ -207,7 +209,7 @@ export default function PlayerDetailScreen() {
 
         {/* Couleur */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Couleur</Text>
+          <Text style={styles.sectionTitle}>{t('colorLabel')}</Text>
           <View style={styles.colorGrid}>
             {COLORS.map(color => (
               <TouchableOpacity
@@ -226,12 +228,12 @@ export default function PlayerDetailScreen() {
           onPress={handleDelete}
         >
           <Text style={styles.deleteBtnText}>
-            Supprimer {player.name}
+            {t('deletePlayerBtn', { name: player.name })}
           </Text>
         </TouchableOpacity>
         {hasActiveGame && (
           <Text style={styles.deleteNote}>
-            Ce joueur a une partie en cours.
+            {t('playerInActiveGame')}
           </Text>
         )}
 

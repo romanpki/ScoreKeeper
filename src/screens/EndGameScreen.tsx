@@ -10,6 +10,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { getGameById, getPlayers, upsertGame, getAllGameConfigs, getGames, saveGames } from '../storage/StorageService';
 import { Game, GameConfig, Player } from '../types';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'EndGame'>;
 type RouteType = RouteProp<RootStackParamList, 'EndGame'>;
@@ -33,6 +34,7 @@ export default function EndGameScreen() {
   const route = useRoute<RouteType>();
   const { gameId } = route.params;
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   const [game, setGame] = useState<Game | null>(null);
   const [config, setConfig] = useState<GameConfig | null>(null);
@@ -183,26 +185,25 @@ export default function EndGameScreen() {
   }
 
   async function handleShare() {
-    const unit = config.inputType === 'wins' ? 'victoire' : 'pt';
     const lines = ranked.map((r) => {
       const score = r.total;
       const label = config.inputType === 'wins'
-        ? `${score} ${score > 1 ? 'victoires' : 'victoire'}`
-        : `${score} pts`;
+        ? `${score} ${score > 1 ? t('wins') : t('win')}`
+        : `${score} ${t('pts')}`;
       return `${ranks[r.id]}. ${r.player?.name ?? '?'} — ${label}`;
     });
     await Share.share({
-      message: `${config.name} — ${game.rounds.length} ${game.rounds.length > 1 ? 'manches' : 'manche'}\n${lines.join('\n')}`,
+      message: `${config.name} — ${game.rounds.length} ${game.rounds.length > 1 ? t('rounds') : t('round')}\n${lines.join('\n')}`,
     });
   }
 
   // ── Suppression ───────────────────────────────────────────────────────────────
 
   async function handleDeleteGame() {
-    Alert.alert('Supprimer cette partie ?', 'Cette action est irréversible.', [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('deleteGameTitle'), t('irreversible'), [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Supprimer', style: 'destructive',
+        text: t('delete'), style: 'destructive',
         onPress: async () => {
           const all = await getGames();
           await saveGames(all.filter(g => g.id !== gameId));
@@ -253,9 +254,9 @@ export default function EndGameScreen() {
 
         {/* Titre */}
         <View style={styles.titleBlock}>
-          <Text style={styles.subtitle}>Partie terminée</Text>
+          <Text style={styles.subtitle}>{t('gameOver')}</Text>
           <Text style={styles.gameTitle}>
-            {config.emoji ?? '🎮'} {config.name} — {game.rounds.length} {game.rounds.length > 1 ? 'manches' : 'manche'}
+            {config.emoji ?? '🎮'} {config.name} — {game.rounds.length} {game.rounds.length > 1 ? t('rounds') : t('round')}
           </Text>
           <Text style={styles.dateText}>
             {formatDate(game.startedAt)}
@@ -295,8 +296,8 @@ export default function EndGameScreen() {
                 </Text>
                 <Text style={[styles.podiumScore, isWinner && [styles.podiumScoreWinner, { color: themeColor }]]}>
                   {config.inputType === 'wins'
-                    ? `${entry.total} ${entry.total > 1 ? 'victoires' : 'victoire'}`
-                    : `${entry.total} pts`}
+                    ? `${entry.total} ${entry.total > 1 ? t('wins') : t('win')}`
+                    : `${entry.total} ${t('pts')}`}
                 </Text>
                 <Animated.View style={[
                   styles.podiumBar,
@@ -328,7 +329,7 @@ export default function EndGameScreen() {
         ))}
 
         {/* Détail par manche */}
-        <Text style={styles.sectionTitle}>Détail par manche</Text>
+        <Text style={styles.sectionTitle}>{t('roundDetail')}</Text>
         <ScrollView horizontal style={styles.tableScroll}>
           <View style={styles.table}>
             <View style={styles.tableRow}>
@@ -336,7 +337,7 @@ export default function EndGameScreen() {
               {game.rounds.map(r => (
                 <Text key={r.roundNumber} style={[styles.cell, styles.cellHeader]}>M{r.roundNumber}</Text>
               ))}
-              <Text style={[styles.cell, styles.totCol, styles.cellHeader]}>Tot</Text>
+              <Text style={[styles.cell, styles.totCol, styles.cellHeader]}>{t('tot')}</Text>
             </View>
             {ranked.map((entry) => (
               <View key={entry.id} style={[styles.tableRow, ranks[entry.id] === 1 && [styles.tableRowWinner, { backgroundColor: themeBg }]]}>
@@ -381,29 +382,29 @@ export default function EndGameScreen() {
         {/* Stats — masquées pour Trio (scores binaires 0/1 non significatifs) */}
         {config.inputType !== 'wins' && (
           <>
-            <Text style={styles.sectionTitle}>Stats de la partie</Text>
+            <Text style={styles.sectionTitle}>{t('statsTitle')}</Text>
             <View style={styles.statsGrid}>
               <View style={styles.statCard}>
-                <Text style={styles.statLabel}>Meilleure manche</Text>
+                <Text style={styles.statLabel}>{t('bestRound')}</Text>
                 <Text style={styles.statValue}>
                   {players.find(p => p.id === bestScore.playerId)?.name} M{bestScore.round} ({bestScore.score})
                 </Text>
               </View>
               <View style={styles.statCard}>
-                <Text style={styles.statLabel}>Pire manche</Text>
+                <Text style={styles.statLabel}>{t('worstRound')}</Text>
                 <Text style={[styles.statValue, styles.statBad]}>
                   {players.find(p => p.id === worstScore.playerId)?.name} M{worstScore.round} ({worstScore.score})
                 </Text>
               </View>
               <View style={styles.statCard}>
-                <Text style={styles.statLabel}>Moyenne / manche</Text>
-                <Text style={styles.statValue}>{avg.toFixed(1)} pts</Text>
+                <Text style={styles.statLabel}>{t('avgPerRound')}</Text>
+                <Text style={styles.statValue}>{avg.toFixed(1)} {t('pts')}</Text>
               </View>
               {config.id === 'skyjo' && (
                 <View style={styles.statCard}>
-                  <Text style={styles.statLabel}>Doublés infligés</Text>
+                  <Text style={styles.statLabel}>{t('doublesDealt')}</Text>
                   <Text style={styles.statValue}>
-                    {doubledCount > 0 ? `${doubledCount} (${firstDoubled})` : 'Aucun'}
+                    {doubledCount > 0 ? `${doubledCount} (${firstDoubled})` : t('none')}
                   </Text>
                 </View>
               )}
@@ -414,27 +415,27 @@ export default function EndGameScreen() {
         {/* Boutons */}
         <View style={styles.btnRow}>
           <TouchableOpacity style={styles.btnSecondary} onPress={handleShare}>
-            <Text style={styles.btnSecondaryText}>↑ Partager</Text>
+            <Text style={styles.btnSecondaryText}>{t('shareBtn')}</Text>
           </TouchableOpacity>
         </View>
         <TouchableOpacity
           style={styles.btnSecondaryFull}
           onPress={() => navigation.navigate('History')}
         >
-          <Text style={styles.btnSecondaryFullText}>Voir l'historique</Text>
+          <Text style={styles.btnSecondaryFullText}>{t('seeHistory')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.btnDelete} onPress={handleDeleteGame}>
-          <Text style={styles.btnDeleteText}>Supprimer cette partie</Text>
+          <Text style={styles.btnDeleteText}>{t('deleteGameBtn')}</Text>
         </TouchableOpacity>
         <View style={styles.btnRow}>
           <TouchableOpacity style={styles.btnOutlineHalf} onPress={handleRevanche}>
-            <Text style={styles.btnOutlineText}>Revanche (mêmes joueurs)</Text>
+            <Text style={styles.btnOutlineText}>{t('rematch')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.btnOutlineHalf}
             onPress={() => navigation.navigate('NewGame', { preselectedGameId: game!.gameConfigId })}
           >
-            <Text style={styles.btnOutlineText}>Rejouer (autres joueurs)</Text>
+            <Text style={styles.btnOutlineText}>{t('replay')}</Text>
           </TouchableOpacity>
         </View>
 

@@ -14,6 +14,7 @@ import {
 } from '../storage/StorageService';
 import { GameConfig, Player } from '../types';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'NewGame'>;
 type RouteType = RouteProp<RootStackParamList, 'NewGame'>;
@@ -29,6 +30,7 @@ export default function NewGameScreen() {
   const navigation = useNavigation<NavProp>();
   const route = useRoute<RouteType>();
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const preselectedGameId = route.params?.preselectedGameId;
   const styles = makeStyles(colors);
 
@@ -78,12 +80,12 @@ export default function NewGameScreen() {
 
   function handleDeleteCustom(game: GameConfig) {
     Alert.alert(
-      `Supprimer "${game.name}" ?`,
-      'Ce jeu sera définitivement supprimé.',
+      t('deleteConfigTitle', { name: game.name }),
+      t('deleteConfigMsg'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Supprimer', style: 'destructive',
+          text: t('delete'), style: 'destructive',
           onPress: async () => {
             await deleteCustomGameConfig(game.id);
             setCustomConfigs(prev => prev.filter(c => c.id !== game.id));
@@ -127,8 +129,8 @@ export default function NewGameScreen() {
     const { minPlayers, maxPlayers } = selectedGame;
     if (selectedIds.length < minPlayers || selectedIds.length > maxPlayers) {
       Alert.alert(
-        'Nombre de joueurs invalide',
-        `${selectedGame.name} nécessite entre ${minPlayers} et ${maxPlayers} joueurs.`
+        t('invalidPlayersTitle'),
+        t('invalidPlayersMsg', { name: selectedGame.name, min: minPlayers, max: maxPlayers })
       );
       return;
     }
@@ -160,9 +162,9 @@ export default function NewGameScreen() {
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text style={styles.back}>← Retour</Text>
+            <Text style={styles.back}>{t('backTo')}</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Choisir un jeu</Text>
+          <Text style={styles.headerTitle}>{t('chooseGame')}</Text>
           <View style={{ width: 60 }} />
         </View>
         <ScrollView contentContainerStyle={styles.grid}>
@@ -191,7 +193,7 @@ export default function NewGameScreen() {
                 <Text style={styles.gameMeta}>
                   {game.inputType === 'wins'
                     ? 'Tracker de victoires'
-                    : game.scoreDirection === 'low' ? '↓ Le moins possible' : '↑ Le plus possible'}
+                    : game.scoreDirection === 'low' ? t('lowDir') : t('highDir')}
                 </Text>
                 {isCustom && (
                   <View style={styles.customBadge}>
@@ -208,7 +210,7 @@ export default function NewGameScreen() {
             onPress={() => navigation.navigate('AddGame')}
           >
             <Text style={styles.addGameIcon}>+</Text>
-            <Text style={styles.addGameText}>Créer un jeu</Text>
+            <Text style={styles.addGameText}>{t('createGame')}</Text>
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
@@ -229,7 +231,7 @@ export default function NewGameScreen() {
         <TouchableOpacity onPress={() => setStep(1)}>
           <Text style={styles.back}>← {selectedGame?.name}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Joueurs</Text>
+        <Text style={styles.headerTitle}>{t('playersStep')}</Text>
         <View style={{ width: 60 }} />
       </View>
 
@@ -239,7 +241,7 @@ export default function NewGameScreen() {
         {needsTargetScore && (
           <View style={styles.targetScoreRow}>
             <Text style={styles.targetScoreLabel}>
-              {selectedGame?.id === 'trio' ? 'Victoires pour gagner :' : 'Points cible :'}
+              {selectedGame?.id === 'trio' ? t('winsTarget') : t('pointsTarget')}
             </Text>
             <TextInput
               style={styles.targetScoreInput}
@@ -254,7 +256,7 @@ export default function NewGameScreen() {
         <View style={styles.addRow}>
           <TextInput
             style={styles.input}
-            placeholder="Prénom du joueur"
+            placeholder={t('playerNamePlaceholder')}
             value={newName}
             onChangeText={setNewName}
             onSubmitEditing={handleAddPlayer}
@@ -302,22 +304,22 @@ export default function NewGameScreen() {
         })}
 
         {players.length === 0 && (
-          <Text style={styles.empty}>Aucun joueur — ajoute-en un ci-dessus !</Text>
+          <Text style={styles.empty}>{t('noPlayers')}</Text>
         )}
       </ScrollView>
 
       {/* Barre de validation */}
       <View style={styles.footer}>
         <Text style={styles.footerMeta}>
-          {selectedIds.length} joueur{selectedIds.length > 1 ? 's' : ''} sélectionné{selectedIds.length > 1 ? 's' : ''}
-          {selectedGame ? ` · ${selectedGame.minPlayers}–${selectedGame.maxPlayers} requis` : ''}
+          {t('selectedCount', { count: selectedIds.length, s: selectedIds.length > 1 ? 's' : '' })}
+          {selectedGame ? ` · ${t('requiredRange', { min: selectedGame.minPlayers, max: selectedGame.maxPlayers })}` : ''}
         </Text>
         <TouchableOpacity
           style={[styles.startBtn, !canStart && styles.startBtnDisabled]}
           onPress={handleStart}
           disabled={!canStart}
         >
-          <Text style={styles.startBtnText}>Lancer la partie →</Text>
+          <Text style={styles.startBtnText}>{t('startGame')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
