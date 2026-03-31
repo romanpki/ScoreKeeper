@@ -18,6 +18,7 @@ import {
 } from '../storage/StorageService';
 import { Game, GameConfig, Player, Round } from '../types';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'Game'>;
 type RoutePropType = RouteProp<RootStackParamList, 'Game'>;
@@ -27,6 +28,7 @@ export default function GameScreen() {
   const route = useRoute<RoutePropType>();
   const { gameId } = route.params;
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   const [game, setGame] = useState<Game | null>(null);
   const [config, setConfig] = useState<GameConfig | null>(null);
@@ -82,8 +84,8 @@ export default function GameScreen() {
         await Notifications.cancelAllScheduledNotificationsAsync();
         await Notifications.scheduleNotificationAsync({
           content: {
-            title: 'Partie en cours 🎮',
-            body: `Ta partie de ${cfg?.name ?? 'jeu'} t'attend !`,
+            title: t('notifTitle'),
+            body: t('notifBody', { name: cfg?.name ?? 'jeu' }),
           },
           trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 86400, repeats: false },
         });
@@ -201,13 +203,13 @@ export default function GameScreen() {
     if (!game || game.rounds.length === 0) return;
     const autoWinner = determineWinner(game.rounds);
     const winnerPlayer = players.find(p => p.id === autoWinner);
-    const dirLabel = config?.scoreDirection === 'high' ? 'le plus de points' : 'le moins de points';
+    const dirLabel = config?.scoreDirection === 'high' ? t('highScore') : t('lowScore');
     Alert.alert(
-      'Terminer la partie',
-      `${winnerPlayer?.name ?? '?'} est en tête (${dirLabel}).\n\nTerminer et déclarer vainqueur ?`,
+      t('endGameTitle'),
+      t('endGameMsg', { winner: winnerPlayer?.name ?? '?', dir: dirLabel }),
       [
-        { text: 'Annuler', style: 'cancel' },
-        { text: 'Confirmer', onPress: () => forceEndGame(autoWinner) },
+        { text: t('cancel'), style: 'cancel' },
+        { text: t('confirm'), onPress: () => forceEndGame(autoWinner) },
       ]
     );
   }
@@ -230,7 +232,7 @@ export default function GameScreen() {
   async function handleValidateTrio() {
     if (!game || !config) return;
     if (!winRoundWinner) {
-      Alert.alert('Vainqueur manquant', 'Sélectionne qui a gagné cette manche.');
+      Alert.alert(t('missingWinner'), t('selectRoundWinner'));
       return;
     }
 
@@ -263,7 +265,7 @@ export default function GameScreen() {
       await upsertGame(updatedGame);
     } catch {
       setGame(previousGame);
-      Alert.alert('Erreur', 'Impossible de sauvegarder la manche. Réessaie.');
+      Alert.alert(t('error'), t('saveError'));
       return;
     }
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -313,7 +315,7 @@ export default function GameScreen() {
       await upsertGame(updatedGame);
     } catch {
       setGame(previousGameSK);
-      Alert.alert('Erreur', 'Impossible de sauvegarder la manche. Réessaie.');
+      Alert.alert(t('error'), t('saveError'));
       return;
     }
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -347,14 +349,14 @@ export default function GameScreen() {
 
     const missing = game.playerIds.some(id => inputs[id].trim() === '');
     if (missing) {
-      Alert.alert('Saisie incomplète', 'Entre un score pour chaque joueur.');
+      Alert.alert(t('incompleteInput'), t('enterScoreAll'));
       return;
     }
 
     if ((config.specialRules as any)?.allowNegative === false) {
       const hasNegative = game.playerIds.some(id => parseInt(inputs[id], 10) < 0);
       if (hasNegative) {
-        Alert.alert('Score invalide', 'Les scores négatifs ne sont pas autorisés pour ce jeu.');
+        Alert.alert(t('invalidScore'), t('noNegativeScore'));
         return;
       }
     }
@@ -364,16 +366,13 @@ export default function GameScreen() {
         sum + (parseInt(inputs[id], 10) || 0), 0
       );
       if (total !== 250) {
-        Alert.alert(
-          'Total incorrect',
-          `La somme des points doit être égale à 250.\nTotal actuel : ${total} pts.`
-        );
+        Alert.alert(t('totalIncorrect'), t('totalMustBe250', { total }));
         return;
       }
     }
 
     if (config.id === 'skyjo' && !firstPlayerId) {
-      Alert.alert('Joueur manquant', 'Indique qui a retourné sa dernière carte en premier.');
+      Alert.alert(t('missingPlayer'), t('selectFirstCard'));
       return;
     }
 
@@ -422,7 +421,7 @@ export default function GameScreen() {
       await upsertGame(updatedGame);
     } catch {
       setGame(previousGameNum);
-      Alert.alert('Erreur', 'Impossible de sauvegarder la manche. Réessaie.');
+      Alert.alert(t('error'), t('saveError'));
       return;
     }
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -442,12 +441,12 @@ export default function GameScreen() {
   async function handleUndoLastRound() {
     if (!game || game.rounds.length === 0) return;
     Alert.alert(
-      'Annuler la dernière manche ?',
-      'Les scores de cette manche seront supprimés.',
+      t('undoRoundTitle'),
+      t('undoRoundMsg'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Confirmer', style: 'destructive',
+          text: t('confirm'), style: 'destructive',
           onPress: async () => {
             const updatedGame = { ...game, rounds: game.rounds.slice(0, -1) };
             await upsertGame(updatedGame);
@@ -461,12 +460,12 @@ export default function GameScreen() {
 
   async function handleAbandon() {
     Alert.alert(
-      'Abandonner la partie ?',
-      'La partie sera supprimée définitivement.',
+      t('abandonTitle'),
+      t('abandonMsg'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Abandonner', style: 'destructive',
+          text: t('abandon'), style: 'destructive',
           onPress: async () => {
             const all = await getGames();
             await saveGames(all.filter(g => g.id !== game!.id));
@@ -489,12 +488,12 @@ export default function GameScreen() {
     : config.endCondition === 'threshold'
     ? `Fin à ${targetScore}`
     : config.endCondition === 'fixed'
-    ? `${config.endValue} manches`
-    : 'Manches choisies';
+    ? t('fixedRounds', { n: config.endValue ?? '' })
+    : t('freeRounds');
 
   const dirLabel = config.inputType === 'wins'
     ? ''
-    : config.scoreDirection === 'low' ? 'Le + bas gagne' : 'Le + haut gagne';
+    : config.scoreDirection === 'low' ? t('lowWins') : t('highWins');
 
   const skyjoNotes = getSkyjoDoubledNotes();
 
@@ -526,7 +525,7 @@ export default function GameScreen() {
           {GAME_RULES[config.id] && (
             <TouchableOpacity
               style={styles.rulesBtn}
-              onPress={() => Alert.alert(`Règles — ${config.name}`, GAME_RULES[config.id])}
+              onPress={() => Alert.alert(t('rulesAlertTitle', { name: config.name }), GAME_RULES[config.id])}
             >
               <Text style={styles.rulesBtnText}>?</Text>
             </TouchableOpacity>
@@ -535,7 +534,7 @@ export default function GameScreen() {
             style={styles.fullRulesBtn}
             onPress={() => navigation.navigate('Rules', { gameId: config.id })}
           >
-            <Text style={styles.fullRulesBtnText}>Règles</Text>
+            <Text style={styles.fullRulesBtnText}>{t('fullRules')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -555,7 +554,7 @@ export default function GameScreen() {
                   </Text>
                 ))}
                 <Text style={[styles.tableCell, styles.tableCellHeader, styles.totalCell]}>
-                  {config.inputType === 'wins' ? 'Vict.' : 'Total'}
+                  {config.inputType === 'wins' ? t('winsShort') : t('total')}
                 </Text>
               </View>
               {players.map(player => (
@@ -878,7 +877,7 @@ export default function GameScreen() {
           )}
         </View>
         <TouchableOpacity style={styles.abandonBtn} onPress={handleAbandon}>
-          <Text style={styles.abandonBtnText}>Abandonner la partie</Text>
+          <Text style={styles.abandonBtnText}>{t('abandonTitle')}</Text>
         </TouchableOpacity>
       </View>}
 

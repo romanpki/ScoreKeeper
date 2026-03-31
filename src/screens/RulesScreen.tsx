@@ -12,6 +12,8 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { ALL_GAME_RULES, GameId } from "../games/rules";
 import { useTheme } from "../context/ThemeContext";
+import { useLanguage } from "../context/LanguageContext";
+import { Strings } from "../locales/fr";
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, "Rules">;
 type RouteType = RouteProp<RootStackParamList, "Rules">;
@@ -30,7 +32,8 @@ type RulesValue =
 function renderValue(
   value: RulesValue,
   depth = 0,
-  colors: ReturnType<typeof import("../context/ThemeContext").useTheme>["colors"]
+  colors: ReturnType<typeof import("../context/ThemeContext").useTheme>["colors"],
+  t: (key: keyof Strings, vars?: Record<string, string | number>) => string
 ): React.ReactNode {
   if (value === undefined || value === null) return null;
 
@@ -66,7 +69,7 @@ function renderValue(
   if (typeof value === "object" && "min" in value && "max" in value) {
     return (
       <Text style={{ fontSize: 14, lineHeight: 21, color: colors.textSub, marginTop: 10 }}>
-        {value.min} à {value.max} joueurs
+        {t('nToMPlayers', { min: value.min, max: value.max })}
       </Text>
     );
   }
@@ -84,9 +87,9 @@ function renderValue(
             marginBottom: 4,
           }}
         >
-          {formatKey(subKey)}
+          {t(('rk_' + subKey) as keyof Strings)}
         </Text>
-        {renderValue(subVal as RulesValue, depth + 1, colors)}
+        {renderValue(subVal as RulesValue, depth + 1, colors, t)}
       </View>
     ));
   }
@@ -94,48 +97,6 @@ function renderValue(
   return null;
 }
 
-function formatKey(key: string): string {
-  const labels: Record<string, string> = {
-    objective: "Objectif",
-    setup: "Mise en place",
-    gameplay: "Déroulement",
-    cards: "Les cartes",
-    scoring: "Score",
-    endGame: "Fin de partie",
-    players: "Joueurs",
-    duration: "Durée",
-    advancedRules: "Règles avancées",
-    teamRules: "Mode équipes",
-    modes: "Modes de jeu",
-    endRound: "Fin de manche",
-    endTurn: "Fin de tour",
-    challenge: "Contestation",
-    uno: "Règle UNO",
-    actionCards: "Cartes Action",
-    cardValues: "Valeur des cartes",
-    tips: "Conseils",
-    flip7: "Flip 7",
-    cardDistribution: "Distribution",
-    steps: "Étapes",
-    colored: "Cartes de couleur",
-    special: "Cartes spéciales",
-    bonus: "Cartes Bonus",
-    number: "Cartes Numéro",
-    systemSkullKing: "Système Skull King",
-    systemRascal: "Système Rascal",
-    bonusPoints: "Points bonus",
-    winner: "Vainqueur",
-    classic: "Cartes classiques",
-    payoo: "Cartes Payoo",
-    papayoo: "Le Papayoo",
-    total: "Total de la manche",
-    simple: "Mode Simple",
-    picante: "Mode Picante",
-    alternative: "Variante",
-    players_team: "Joueurs",
-  };
-  return labels[key] ?? key.replace(/([A-Z])/g, " $1").trim();
-}
 
 const SKIP_KEYS = new Set(["gameId", "gameName", "tagline"]);
 
@@ -147,6 +108,7 @@ export default function RulesScreen() {
   const navigation = useNavigation<NavProp>();
   const route = useRoute<RouteType>();
   const { colors, isDark } = useTheme();
+  const { t } = useLanguage();
   const { gameId } = route.params;
   const rules = ALL_GAME_RULES[gameId as GameId];
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
@@ -155,7 +117,7 @@ export default function RulesScreen() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
         <Text style={{ padding: 20, color: "#FF3B30", fontSize: 16 }}>
-          Règles introuvables pour ce jeu.
+          {t('rulesNotFound')}
         </Text>
       </SafeAreaView>
     );
@@ -177,7 +139,7 @@ export default function RulesScreen() {
         }}
       >
         <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginBottom: 8 }}>
-          <Text style={{ color: PURPLE, fontSize: 16 }}>‹ Retour</Text>
+          <Text style={{ color: PURPLE, fontSize: 16 }}>{t('backTo')}</Text>
         </TouchableOpacity>
         <Text style={{ fontSize: 28, fontWeight: "700", color: "#FFFFFF" }}>
           {gameName}
@@ -189,7 +151,7 @@ export default function RulesScreen() {
 
       <ScrollView contentContainerStyle={{ padding: 16 }}>
         {sections.map(([key, value]) => {
-          const label = formatKey(key);
+          const label = t(('rk_' + key) as keyof Strings);
           const isExpanded = expandedSection === key;
 
           return (
@@ -236,7 +198,7 @@ export default function RulesScreen() {
                     borderTopColor: colors.border2,
                   }}
                 >
-                  {renderValue(value as RulesValue, 0, colors)}
+                  {renderValue(value as RulesValue, 0, colors, t)}
                 </View>
               )}
             </View>

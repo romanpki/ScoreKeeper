@@ -12,6 +12,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { getGames, saveGames, getPlayers, savePlayers, getAllGameConfigs } from '../storage/StorageService';
 import { Game, GameConfig, Player } from '../types';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'History'>;
 
@@ -24,20 +25,10 @@ function formatDuration(startedAt: number, finishedAt: number): string {
   return '<1min';
 }
 
-function formatDateRelative(ts: number): string {
-  const now = Date.now();
-  const diff = now - ts;
-  const days = Math.floor(diff / 86400000);
-  if (days === 0) return "Aujourd'hui";
-  if (days === 1) return 'Hier';
-  if (days < 7) return ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'][new Date(ts).getDay()];
-  return new Date(ts).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-}
-
-
 export default function HistoryScreen() {
   const navigation = useNavigation<NavProp>();
   const { colors } = useTheme();
+  const { t, lang } = useLanguage();
   const [games, setGames] = useState<Game[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [allConfigs, setAllConfigs] = useState<GameConfig[]>([]);
@@ -127,7 +118,7 @@ export default function HistoryScreen() {
       const content = await FileSystem.readAsStringAsync(result.assets[0].uri);
       const lines = content.split('\n').map(l => l.trim()).filter(l => l.length > 0);
       if (lines.length < 2) {
-        Alert.alert('Fichier invalide', 'Le CSV ne contient aucune donnée.');
+        Alert.alert(t('invalidCSV'), t('invalidCSVMsg'));
         return;
       }
 
@@ -189,9 +180,9 @@ export default function HistoryScreen() {
       await saveGames(newGames);
       setGames(newGames.filter(g => g.status === 'finished').sort((a, b) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0)));
       setPlayers(newPlayers);
-      Alert.alert('Import réussi', `${imported} partie${imported > 1 ? 's' : ''} importée${imported > 1 ? 's' : ''}.`);
+      Alert.alert(t('importSuccess'), t('importSuccessMsg', { n: imported, s: imported > 1 ? 's' : '' }));
     } catch {
-      Alert.alert('Erreur', 'Impossible de lire le fichier CSV.');
+      Alert.alert(t('error'), t('csvReadError'));
     }
   }
 
@@ -199,15 +190,15 @@ export default function HistoryScreen() {
 
   async function handleExportCSV() {
     if (games.length === 0) {
-      Alert.alert('Aucune partie', 'Il n\'y a rien à exporter.');
+      Alert.alert(t('noGamesExport'), t('noGamesExportMsg'));
       return;
     }
     const isSharingAvailable = await Sharing.isAvailableAsync();
     if (!isSharingAvailable) {
-      Alert.alert('Non disponible', 'Le partage n\'est pas disponible sur cet appareil.');
+      Alert.alert(t('sharingUnavailable'), t('sharingUnavailableMsg'));
       return;
     }
-    const header = 'Jeu,Date,Joueurs,Gagnant,Manches,Durée\n';
+    const header = t('csvHeader');
     const rows = games.map(g => {
       const name = allConfigs.find(c => c.id === g.gameConfigId)?.name ?? '';
       const date = new Date(g.finishedAt ?? 0).toLocaleDateString('fr-FR');
@@ -220,7 +211,7 @@ export default function HistoryScreen() {
     const csv = header + rows;
     const path = `${FileSystem.cacheDirectory}scorekeeper_export.csv`;
     await FileSystem.writeAsStringAsync(path, csv, { encoding: FileSystem.EncodingType.UTF8 });
-    await Sharing.shareAsync(path, { mimeType: 'text/csv', dialogTitle: 'Exporter l\'historique' });
+    await Sharing.shareAsync(path, { mimeType: 'text/csv', dialogTitle: t('exportDialogTitle') });
   }
 
   // ── Classement global ──────────────────────────────────────────────────────
@@ -232,6 +223,16 @@ export default function HistoryScreen() {
   })
   .filter(s => s.total > 0)
   .sort((a, b) => b.wins - a.wins || b.total - a.total);
+
+  function formatDateRelative(ts: number): string {
+    const now = Date.now();
+    const diff = now - ts;
+    const days = Math.floor(diff / 86400000);
+    if (days === 0) return t('today');
+    if (days === 1) return t('yesterday');
+    if (days < 7) return (t('days') as unknown as string[])[new Date(ts).getDay()];
+    return new Date(ts).toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'short' });
+  }
 
   // ── Rendu ──────────────────────────────────────────────────────────────────
 
@@ -246,7 +247,7 @@ export default function HistoryScreen() {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Text style={styles.back}>‹</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Historique</Text>
+          <Text style={styles.title}>{t('historyTitle')}</Text>
           <View style={styles.headerActions}>
             <TouchableOpacity onPress={handleImportCSV}>
               <Text style={styles.exportBtn}>↓ CSV</Text>
@@ -262,7 +263,7 @@ export default function HistoryScreen() {
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
             style={styles.searchInput}
-            placeholder="Rechercher un jeu ou un joueur..."
+            placeholder={t('searchPlaceholder')}
             placeholderTextColor="#bbb"
             value={searchQuery}
             onChangeText={v => { setSearchQuery(v); setVisibleCount(PAGE_SIZE); }}
@@ -279,7 +280,7 @@ export default function HistoryScreen() {
               onPress={() => { setSortBy(s); setVisibleCount(PAGE_SIZE); }}
             >
               <Text style={[styles.sortText, sortBy === s && styles.sortTextActive]}>
-                {s === 'date' ? 'Date' : s === 'game' ? 'Jeu' : 'Durée'}
+                {s === 'date' ? t('sortDate') : s === 'game' ? t('sortGame') : t('sortDuration')}
               </Text>
             </TouchableOpacity>
           ))}
@@ -292,7 +293,7 @@ export default function HistoryScreen() {
               style={[styles.filterChip, filter === null && styles.filterChipActive]}
               onPress={() => { setFilter(null); setVisibleCount(PAGE_SIZE); }}
             >
-              <Text style={[styles.filterText, filter === null && styles.filterTextActive]}>Toutes</Text>
+              <Text style={[styles.filterText, filter === null && styles.filterTextActive]}>{t('filterAll')}</Text>
             </TouchableOpacity>
             {allConfigs.map(g => (
               <TouchableOpacity
@@ -309,7 +310,7 @@ export default function HistoryScreen() {
         {/* Classement global */}
         {playerStats.length > 0 && (
           <>
-            <Text style={styles.sectionLabel}>CLASSEMENT GLOBAL</Text>
+            <Text style={styles.sectionLabel}>{t('globalRanking')}</Text>
             <View style={styles.rankingList}>
               {playerStats.map((s, i) => {
                 const isFirst = i === 0;
@@ -325,10 +326,10 @@ export default function HistoryScreen() {
                     <Text style={[styles.rankName, isFirst && styles.rankNameFirst]}>{s.player.name}</Text>
                     <View style={styles.rankRight}>
                       <Text style={[styles.rankWins, isFirst && styles.rankWinsFirst]}>
-                        {s.wins} victoire{s.wins > 1 ? 's' : ''}
+                        {s.wins} {s.wins > 1 ? t('wins') : t('win')}
                       </Text>
                       <Text style={[styles.rankMeta, isFirst && styles.rankMetaFirst]}>
-                        {s.total} partie{s.total > 1 ? 's' : ''} · {rate}%
+                        {s.total} {s.total > 1 ? t('games') : t('game')} · {rate}%
                       </Text>
                     </View>
                   </View>
@@ -341,7 +342,7 @@ export default function HistoryScreen() {
         {/* Parties récentes */}
         {filteredGames.length > 0 && (
           <>
-            <Text style={styles.sectionLabel}>PARTIES RÉCENTES</Text>
+            <Text style={styles.sectionLabel}>{t('recentGamesSection')}</Text>
             <View style={styles.gamesList}>
               {pagedGames.map(game => {
                 const config = allConfigs.find(c => c.id === game.gameConfigId);
@@ -369,7 +370,7 @@ export default function HistoryScreen() {
                         <Text style={styles.gameCardName}>{config?.emoji ?? '🎮'} {config?.name ?? '?'}</Text>
                         <View style={[styles.gameCardBadge, { backgroundColor: colors.bg }]}>
                           <Text style={[styles.gameCardBadgeText, { color: colors.text }]}>
-                            {game.rounds.length} manches
+                            {game.rounds.length} {t('rounds')}
                           </Text>
                         </View>
                         {game.finishedAt && (
@@ -407,13 +408,13 @@ export default function HistoryScreen() {
             onPress={() => setVisibleCount(c => c + PAGE_SIZE)}
           >
             <Text style={styles.loadMoreText}>
-              Voir plus ({filteredGames.length - visibleCount} restantes)
+              {t('seeMore', { n: filteredGames.length - visibleCount })}
             </Text>
           </TouchableOpacity>
         )}
 
         {filteredGames.length === 0 && (
-          <Text style={styles.empty}>Aucune partie enregistrée.</Text>
+          <Text style={styles.empty}>{t('noGamesRecorded')}</Text>
         )}
 
       </ScrollView>

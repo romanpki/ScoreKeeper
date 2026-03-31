@@ -15,6 +15,7 @@ import { getCurrentGames, getGames, saveGames, getPlayers, getAllGameConfigs } f
 import { Game, GameConfig, Player } from '../types';
 import { GAME_RULES } from '../data/gameRules';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -22,7 +23,8 @@ const PURPLE = '#6c63ff';
 
 export default function HomeScreen() {
   const navigation = useNavigation<NavProp>();
-  const { colors, isDark, toggleTheme } = useTheme();
+  const { colors } = useTheme();
+  const { t } = useLanguage();
   const [currentGames, setCurrentGames] = useState<Game[]>([]);
   const [recentGames, setRecentGames] = useState<Game[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -52,12 +54,12 @@ export default function HomeScreen() {
 
   async function handleAbandon(gameId: string) {
     Alert.alert(
-      'Abandonner la partie ?',
-      'La partie sera supprimée définitivement.',
+      t('abandonTitle'),
+      t('abandonMsg'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Abandonner', style: 'destructive',
+          text: t('abandon'), style: 'destructive',
           onPress: async () => {
             const all = await getGames();
             await saveGames(all.filter(g => g.id !== gameId));
@@ -73,34 +75,32 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* En-tête */}
       <View style={styles.header}>
         <Text style={styles.title}>ScoreKeeper</Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.themeBtn} onPress={toggleTheme}>
-            <Text style={styles.themeBtnText}>{isDark ? '☀️' : '🌙'}</Text>
+          <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Players')}>
+            <Text style={styles.iconBtnText}>👤</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.profileBtn} onPress={() => navigation.navigate('Players')}>
-            <Text style={styles.profileIcon}>👤</Text>
+          <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Settings')}>
+            <Text style={styles.iconBtnText}>⚙️</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
 
-        {/* Bouton principal */}
         <TouchableOpacity
           style={styles.primaryBtn}
           onPress={() => navigation.navigate('NewGame')}
         >
-          <Text style={styles.primaryBtnText}>+ Nouvelle partie</Text>
+          <Text style={styles.primaryBtnText}>{t('newGame')}</Text>
         </TouchableOpacity>
 
         {/* Parties en cours */}
         {currentGames.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
-              {currentGames.length > 1 ? 'Parties en cours' : 'Partie en cours'}
+              {currentGames.length > 1 ? t('currentGames') : t('currentGame')}
             </Text>
             {currentGames.map(game => (
               <View key={game.id} style={styles.currentGameCard}>
@@ -113,15 +113,15 @@ export default function HomeScreen() {
                   <Text style={styles.currentGameSub}>
                     {game.playerIds
                       .map(id => players.find(p => p.id === id)?.name ?? '?')
-                      .join(', ')} · Manche {game.rounds.length}
+                      .join(', ')} · {t('round')} {game.rounds.length}
                   </Text>
-                  <Text style={styles.currentGameResume}>Reprendre →</Text>
+                  <Text style={styles.currentGameResume}>{t('resume')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.abandonBtn}
                   onPress={() => handleAbandon(game.id)}
                 >
-                  <Text style={styles.abandonBtnText}>Abandonner</Text>
+                  <Text style={styles.abandonBtnText}>{t('abandon')}</Text>
                 </TouchableOpacity>
               </View>
             ))}
@@ -132,9 +132,9 @@ export default function HomeScreen() {
         {recentGames.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Dernières parties</Text>
+              <Text style={styles.sectionTitle}>{t('recentGames')}</Text>
               <TouchableOpacity onPress={() => navigation.navigate('History')}>
-                <Text style={styles.seeAll}>Tout voir</Text>
+                <Text style={styles.seeAll}>{t('seeAll')}</Text>
               </TouchableOpacity>
             </View>
             {recentGames.map(game => {
@@ -151,7 +151,7 @@ export default function HomeScreen() {
                 >
                   <Text style={styles.recentName}>
                     {allConfigs.find(g => g.id === game.gameConfigId)?.emoji ?? '🎮'} {allConfigs.find(g => g.id === game.gameConfigId)?.name ?? 'Jeu'}
-                    <Text style={styles.recentManches}> · {game.rounds.length} manches</Text>
+                    <Text style={styles.recentManches}> · {game.rounds.length} {game.rounds.length > 1 ? t('rounds') : t('round')}</Text>
                   </Text>
                   <Text style={styles.recentSub}>
                     🏆 {winner?.name ?? '?'} · {others}
@@ -165,9 +165,9 @@ export default function HomeScreen() {
         {/* Jeux disponibles */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Jeux disponibles</Text>
+            <Text style={styles.sectionTitle}>{t('availableGames')}</Text>
             <TouchableOpacity onPress={() => navigation.navigate('NewGame')}>
-              <Text style={styles.seeAll}>+ Ajouter</Text>
+              <Text style={styles.seeAll}>{t('addGame')}</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.gameList}>
@@ -186,17 +186,17 @@ export default function HomeScreen() {
                     </Text>
                     {isCustom && (
                       <View style={styles.customBadge}>
-                        <Text style={styles.customBadgeText}>Perso</Text>
+                        <Text style={styles.customBadgeText}>{t('custom')}</Text>
                       </View>
                     )}
                   </View>
                   <Text style={styles.gameListMeta}>
-                    {game.minPlayers}–{game.maxPlayers} joueurs
+                    {game.minPlayers}–{game.maxPlayers} {t('players')}
                   </Text>
                   {rules ? (
                     <TouchableOpacity
                       style={styles.rulesBtn}
-                      onPress={() => Alert.alert(`Règles — ${game.name}`, rules)}
+                      onPress={() => Alert.alert(t('rulesAlertTitle', { name: game.name }), rules)}
                     >
                       <Text style={styles.rulesBtnText}>?</Text>
                     </TouchableOpacity>
@@ -227,19 +227,12 @@ function makeStyles(colors: ReturnType<typeof import('../context/ThemeContext').
     },
     title: { fontSize: 22, fontWeight: 'bold', color: colors.text },
     headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    themeBtn: {
+    iconBtn: {
       width: 36, height: 36, borderRadius: 18,
       backgroundColor: colors.surface2,
       alignItems: 'center', justifyContent: 'center',
     },
-    themeBtnText: { fontSize: 16 },
-    profileBtn: {
-      width: 36, height: 36, borderRadius: 18,
-      backgroundColor: PURPLE + '18',
-      borderWidth: 1, borderColor: PURPLE + '44',
-      alignItems: 'center', justifyContent: 'center',
-    },
-    profileIcon: { fontSize: 18 },
+    iconBtnText: { fontSize: 18 },
     scroll: { padding: 20, gap: 24 },
     primaryBtn: {
       backgroundColor: PURPLE,

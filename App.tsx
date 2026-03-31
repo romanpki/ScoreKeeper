@@ -6,6 +6,7 @@ import AppNavigator from './src/navigation/AppNavigator';
 import { syncFromCloud } from './src/storage/StorageService';
 import CloudSyncToast from './src/components/CloudSyncToast';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
+import { LanguageProvider } from './src/context/LanguageContext';
 
 function ThemedStatusBar() {
   const { isDark } = useTheme();
@@ -40,11 +41,13 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider>
-        <ThemedStatusBar />
-        <AppNavigator />
-        <CloudSyncToast />
-      </ThemeProvider>
+      <LanguageProvider>
+        <ThemeProvider>
+          <ThemedStatusBar />
+          <AppNavigator />
+          <CloudSyncToast />
+        </ThemeProvider>
+      </LanguageProvider>
     </GestureHandlerRootView>
   );
 }
