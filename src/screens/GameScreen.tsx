@@ -482,11 +482,11 @@ export default function GameScreen() {
   const targetScore = game.metadata?.targetScore ?? config.endValue;
 
   const endLabel = config.id === 'papayoo'
-    ? `${game.playerIds.length} manches`
+    ? t('fixedRounds', { n: game.playerIds.length })
     : config.inputType === 'wins'
-    ? `Fin à ${targetScore} victoire${targetScore > 1 ? 's' : ''}`
+    ? t('endAtWins', { n: targetScore, s: targetScore > 1 ? 's' : '' })
     : config.endCondition === 'threshold'
-    ? `Fin à ${targetScore}`
+    ? t('endAtScore', { n: targetScore })
     : config.endCondition === 'fixed'
     ? t('fixedRounds', { n: config.endValue ?? '' })
     : t('freeRounds');
@@ -519,7 +519,7 @@ export default function GameScreen() {
               ) : null}
             </View>
           </View>
-          <Text style={styles.roundSub}>Manche {roundNumber}{elapsed ? ` · ${elapsed}` : ''}</Text>
+          <Text style={styles.roundSub}>{t('roundLabel', { n: roundNumber })}{elapsed ? ` · ${elapsed}` : ''}</Text>
         </View>
         <View style={styles.headerBtns}>
           {GAME_RULES[config.id] && (
@@ -546,11 +546,11 @@ export default function GameScreen() {
             <View style={styles.table}>
               <View style={styles.tableRow}>
                 <View style={styles.nameCellWrap}>
-                  <Text style={[styles.tableCell, styles.tableCellHeader]}>Joueur</Text>
+                  <Text style={[styles.tableCell, styles.tableCellHeader]}>{t('playerHeader')}</Text>
                 </View>
                 {game.rounds.map(r => (
                   <Text key={r.roundNumber} style={[styles.tableCell, styles.tableCellHeader]}>
-                    M{r.roundNumber}
+                    {t('roundShort')}{r.roundNumber}
                   </Text>
                 ))}
                 <Text style={[styles.tableCell, styles.tableCellHeader, styles.totalCell]}>
@@ -625,7 +625,7 @@ export default function GameScreen() {
           style={styles.spectatorFAB}
           onPress={() => setForceInputMode(true)}
         >
-          <Text style={styles.spectatorFABText}>✏️ Saisir</Text>
+          <Text style={styles.spectatorFABText}>{t('enterRound')}</Text>
         </TouchableOpacity>
       ) : null}
 
@@ -634,7 +634,7 @@ export default function GameScreen() {
         <ScrollView contentContainerStyle={styles.inputs}>
           <View style={styles.skDealerBanner}>
             <Text style={styles.skDealerText}>
-              Donneur : <Text style={styles.skDealerName}>{players[(roundNumber - 1) % players.length]?.name ?? '?'}</Text>
+              {t('dealer', { name: players[(roundNumber - 1) % players.length]?.name ?? '?' })}
             </Text>
           </View>
           {players.map(player => {
@@ -657,7 +657,7 @@ export default function GameScreen() {
                 </View>
                 <View style={styles.skRow}>
                   <View style={styles.skField}>
-                    <Text style={styles.skFieldLabel}>Mise annoncée</Text>
+                    <Text style={styles.skFieldLabel}>{t('skBidLabel')}</Text>
                     <View style={styles.skStepper}>
                       <TouchableOpacity style={styles.stepBtn} onPress={() => setSkBids(p => ({ ...p, [player.id]: Math.max(0, bid - 1) }))}>
                         <Text style={styles.stepBtnText}>−</Text>
@@ -669,7 +669,7 @@ export default function GameScreen() {
                     </View>
                   </View>
                   <View style={styles.skField}>
-                    <Text style={styles.skFieldLabel}>Plis réalisés</Text>
+                    <Text style={styles.skFieldLabel}>{t('skTricksLabel')}</Text>
                     <View style={styles.skStepper}>
                       <TouchableOpacity style={styles.stepBtn} onPress={() => setSkTricks(p => ({ ...p, [player.id]: Math.max(0, tricks - 1) }))}>
                         <Text style={styles.stepBtnText}>−</Text>
@@ -683,7 +683,7 @@ export default function GameScreen() {
                 </View>
                 <View style={styles.skBonusRow}>
                   <View style={styles.skBonusField}>
-                    <Text style={styles.skBonusLabel}>Bonus 14 (+10 chaq.)</Text>
+                    <Text style={styles.skBonusLabel}>{t('skBonus14Label')}</Text>
                     <View style={styles.skBonusStepper}>
                       <TouchableOpacity style={styles.skBonusBtn} onPress={() => setSkBonus14(p => ({ ...p, [player.id]: Math.max(0, b14 - 1) }))}>
                         <Text style={styles.stepBtnText}>−</Text>
@@ -695,7 +695,7 @@ export default function GameScreen() {
                     </View>
                   </View>
                   <View style={styles.skBonusField}>
-                    <Text style={styles.skBonusLabel}>Pirates par SK (+30)</Text>
+                    <Text style={styles.skBonusLabel}>{t('skBonusPirateLabel')}</Text>
                     <View style={styles.skBonusStepper}>
                       <TouchableOpacity style={styles.skBonusBtn} onPress={() => setSkBonusPirate(p => ({ ...p, [player.id]: Math.max(0, bPirate - 1) }))}>
                         <Text style={styles.stepBtnText}>−</Text>
@@ -711,7 +711,7 @@ export default function GameScreen() {
                     onPress={() => setSkBonusSK(p => ({ ...p, [player.id]: !bSK }))}
                   >
                     <Text style={[styles.skBonusSKText, bSK && styles.skBonusSKTextOn]}>
-                      ☠️ par Sirène {bSK ? '+50 ✓' : '+50'}
+                      {t('skMermaid', { check: bSK ? ' ✓' : '' })}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -722,7 +722,7 @@ export default function GameScreen() {
       ) : (!isSpectatorMode || forceInputMode) && config.inputType === 'wins' ? (
         <ScrollView contentContainerStyle={styles.inputs}>
           <View style={styles.firstPlayerSection}>
-            <Text style={styles.firstPlayerLabel}>Qui a gagné la manche {roundNumber} ?</Text>
+            <Text style={styles.firstPlayerLabel}>{t('roundWinnerLabel', { n: roundNumber })}</Text>
             <View style={styles.firstPlayerChips}>
               {players.map(p => (
                 <TouchableOpacity
@@ -746,8 +746,8 @@ export default function GameScreen() {
         /* ── Zone de saisie numérique ── */
         <ScrollView contentContainerStyle={styles.inputs}>
           <View style={styles.inputsHeader}>
-            <Text style={styles.inputsTitle}>Saisie — Manche {roundNumber}</Text>
-            <Text style={styles.inputsHint}>Total de chaque joueur</Text>
+            <Text style={styles.inputsTitle}>{t('inputHeader', { n: roundNumber })}</Text>
+            <Text style={styles.inputsHint}>{t('playerTotalHint')}</Text>
           </View>
           {players.map(player => (
             <View key={player.id} style={styles.inputRow}>
@@ -792,14 +792,14 @@ export default function GameScreen() {
           {/* Flip 7 — qui a fait le Flip ? */}
           {config.id === 'flip7' && (
             <View style={styles.firstPlayerSection}>
-              <Text style={styles.firstPlayerLabel}>Flip 7 réalisé par :</Text>
+              <Text style={styles.firstPlayerLabel}>{t('flip7By')}</Text>
               <View style={styles.firstPlayerChips}>
                 <TouchableOpacity
                   style={[styles.chip, flip7Achieved === null && styles.chipSelected]}
                   onPress={() => setFlip7Achieved(null as any)}
                 >
                   <Text style={[styles.chipText, flip7Achieved === null && styles.chipTextSelected]}>
-                    Personne
+                    {t('nobody')}
                   </Text>
                 </TouchableOpacity>
                 {players.map(p => (
@@ -820,7 +820,7 @@ export default function GameScreen() {
           {/* Sélecteur "A terminé en 1er" pour Skyjo */}
           {config.id === 'skyjo' && (
             <View style={styles.firstPlayerSection}>
-              <Text style={styles.firstPlayerLabel}>A terminé en 1er :</Text>
+              <Text style={styles.firstPlayerLabel}>{t('finishedFirst')}</Text>
               <View style={styles.firstPlayerChips}>
                 {players.map(p => (
                   <TouchableOpacity
@@ -842,7 +842,7 @@ export default function GameScreen() {
       {/* Total en cours pour Papayoo */}
       {(!isSpectatorMode || forceInputMode) && config.id === 'papayoo' && (
         <View style={styles.papayooTotal}>
-          <Text style={styles.papayooTotalLabel}>Total saisi :</Text>
+          <Text style={styles.papayooTotalLabel}>{t('papayooRunning')}</Text>
           <Text style={[
             styles.papayooTotalValue,
             game.playerIds.reduce((s, id) => s + (parseInt(inputs[id], 10) || 0), 0) === 250
@@ -857,22 +857,22 @@ export default function GameScreen() {
       {/* Footer */}
       {isSpectatorMode && forceInputMode && (
         <TouchableOpacity style={styles.spectatorBack} onPress={() => setForceInputMode(false)}>
-          <Text style={styles.spectatorBackText}>← Mode tableau</Text>
+          <Text style={styles.spectatorBackText}>{t('tableMode')}</Text>
         </TouchableOpacity>
       )}
       {(!isSpectatorMode || forceInputMode) && <View style={styles.footer}>
         <TouchableOpacity style={[styles.validateBtn, { backgroundColor: themeColor }]} onPress={handleValidate}>
-          <Text style={styles.validateBtnText}>Valider la manche {roundNumber}</Text>
+          <Text style={styles.validateBtnText}>{t('validateRound', { n: roundNumber })}</Text>
         </TouchableOpacity>
         <View style={styles.footerRow}>
           {game.rounds.length > 0 && (
             <TouchableOpacity style={styles.forceEndBtn} onPress={handleForceEnd}>
-              <Text style={styles.forceEndBtnText}>Terminer</Text>
+              <Text style={styles.forceEndBtnText}>{t('forceEnd')}</Text>
             </TouchableOpacity>
           )}
           {game.rounds.length > 0 && (
             <TouchableOpacity style={styles.undoBtn} onPress={handleUndoLastRound}>
-              <Text style={styles.undoBtnText}>↩ Annuler M{game.rounds.length}</Text>
+              <Text style={styles.undoBtnText}>{t('undoRoundShort', { n: game.rounds.length })}</Text>
             </TouchableOpacity>
           )}
         </View>
