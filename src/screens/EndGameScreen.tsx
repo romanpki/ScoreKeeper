@@ -25,8 +25,9 @@ function formatDuration(startedAt: number, finishedAt: number): string {
   return `${Math.floor(mins / 60)}h${mins % 60 > 0 ? String(mins % 60).padStart(2, '0') : ''}`;
 }
 
-function formatDate(ts: number): string {
-  return new Date(ts).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+function formatDate(ts: number, lang: 'fr' | 'en'): string {
+  const locale = lang === 'en' ? 'en-GB' : 'fr-FR';
+  return new Date(ts).toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
 export default function EndGameScreen() {
@@ -34,7 +35,7 @@ export default function EndGameScreen() {
   const route = useRoute<RouteType>();
   const { gameId } = route.params;
   const { colors } = useTheme();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   const [game, setGame] = useState<Game | null>(null);
   const [config, setConfig] = useState<GameConfig | null>(null);
@@ -259,7 +260,7 @@ export default function EndGameScreen() {
             {config.emoji ?? '🎮'} {config.name} — {game.rounds.length} {game.rounds.length > 1 ? t('rounds') : t('round')}
           </Text>
           <Text style={styles.dateText}>
-            {formatDate(game.startedAt)}
+            {formatDate(game.startedAt, lang)}
             {game.finishedAt ? ` · ${formatDuration(game.startedAt, game.finishedAt)}` : ''}
           </Text>
         </View>

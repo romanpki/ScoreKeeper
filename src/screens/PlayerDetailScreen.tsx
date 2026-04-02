@@ -36,7 +36,7 @@ export default function PlayerDetailScreen() {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [playerId]);
 
   async function load() {
     const [allPlayers, allGames, configs] = await Promise.all([getPlayers(), getGames(), getAllGameConfigs()]);

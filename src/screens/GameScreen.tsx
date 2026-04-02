@@ -92,6 +92,7 @@ export default function GameScreen() {
       }
     };
     load();
+    return () => { Notifications.cancelAllScheduledNotificationsAsync(); };
   }, [gameId]);
 
   useEffect(() => {
