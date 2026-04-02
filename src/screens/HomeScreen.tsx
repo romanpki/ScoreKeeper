@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -71,7 +71,7 @@ export default function HomeScreen() {
     );
   }
 
-  const styles = makeStyles(colors);
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -172,7 +172,7 @@ export default function HomeScreen() {
           </View>
           <View style={styles.gameList}>
             {allConfigs.map((game, index) => {
-              const isCustom = !!(game.specialRules as any)?.isCustom;
+              const isCustom = !!game.specialRules?.isCustom;
               const isLast = index === allConfigs.length - 1;
               const rules = GAME_RULES[game.id];
               return (

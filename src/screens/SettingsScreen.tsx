@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, Linking,
 } from 'react-native';
@@ -17,7 +17,7 @@ export default function SettingsScreen() {
   const { colors, isDark, toggleTheme } = useTheme();
   const { t, lang, setLang } = useLanguage();
   const [notifStatus, setNotifStatus] = useState<'granted' | 'denied' | 'undetermined'>('undetermined');
-  const styles = makeStyles(colors);
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   useEffect(() => {
     Notifications.getPermissionsAsync().then(({ status }) => {

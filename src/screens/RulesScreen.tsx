@@ -20,12 +20,22 @@ type RouteType = RouteProp<RootStackParamList, "Rules">;
 
 // ─── Types ───────────────────────────────────
 
+type LocalizedString = { fr: string; en: string };
+type LocalizedStringArray = { fr: string[]; en: string[] };
+
 type RulesValue =
   | string
   | string[]
-  | Record<string, string | string[]>
+  | LocalizedString
+  | LocalizedStringArray
+  | Record<string, RulesValue>
   | { min: number; max: number }
   | undefined;
+
+function isLocalized(v: unknown): v is LocalizedString | LocalizedStringArray {
+  return typeof v === "object" && v !== null && "fr" in v && "en" in v &&
+    !("min" in v) && !("max" in v);
+}
 
 // ─── Helpers de rendu ────────────────────────
 
@@ -33,9 +43,14 @@ function renderValue(
   value: RulesValue,
   depth = 0,
   colors: ReturnType<typeof import("../context/ThemeContext").useTheme>["colors"],
-  t: (key: keyof Strings, vars?: Record<string, string | number>) => string
+  t: (key: keyof Strings, vars?: Record<string, string | number>) => string,
+  lang: import("../context/LanguageContext").Lang
 ): React.ReactNode {
   if (value === undefined || value === null) return null;
+
+  if (isLocalized(value)) {
+    return renderValue((value as any)[lang], depth, colors, t, lang);
+  }
 
   if (typeof value === "string") {
     return (
@@ -89,7 +104,7 @@ function renderValue(
         >
           {t(('rk_' + subKey) as keyof Strings)}
         </Text>
-        {renderValue(subVal as RulesValue, depth + 1, colors, t)}
+        {renderValue(subVal as RulesValue, depth + 1, colors, t, lang)}
       </View>
     ));
   }
@@ -108,7 +123,7 @@ export default function RulesScreen() {
   const navigation = useNavigation<NavProp>();
   const route = useRoute<RouteType>();
   const { colors, isDark } = useTheme();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { gameId } = route.params;
   const rules = ALL_GAME_RULES[gameId as GameId];
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
@@ -124,8 +139,10 @@ export default function RulesScreen() {
   }
 
   const sections = Object.entries(rules).filter(([key]) => !SKIP_KEYS.has(key));
-  const gameName = (rules as any).gameName as string;
-  const tagline = (rules as any).tagline as string;
+  const gameNameRaw = (rules as any).gameName;
+  const taglineRaw = (rules as any).tagline;
+  const gameName: string = isLocalized(gameNameRaw) ? (gameNameRaw as any)[lang] : gameNameRaw;
+  const tagline: string = isLocalized(taglineRaw) ? (taglineRaw as any)[lang] : taglineRaw;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -198,7 +215,7 @@ export default function RulesScreen() {
                     borderTopColor: colors.border2,
                   }}
                 >
-                  {renderValue(value as RulesValue, 0, colors, t)}
+                  {renderValue(value as RulesValue, 0, colors, t, lang)}
                 </View>
               )}
             </View>

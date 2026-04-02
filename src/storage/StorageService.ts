@@ -37,22 +37,27 @@ export async function syncFromCloud(): Promise<void> {
     const cloudGames = await ICloudKVS.getString(KEYS.GAMES);
 
     if (cloudPlayers) {
-      const local = await AsyncStorage.getItem(KEYS.PLAYERS);
-      const localData = local ? JSON.parse(local) as Player[] : [];
-      const cloudData = JSON.parse(cloudPlayers) as Player[];
-
-      // Merge : last write wins par UUID
-      const merged = mergeById(localData, cloudData);
-      await AsyncStorage.setItem(KEYS.PLAYERS, JSON.stringify(merged));
+      try {
+        const local = await AsyncStorage.getItem(KEYS.PLAYERS);
+        const localData: Player[] = local ? JSON.parse(local) : [];
+        const cloudData: Player[] = JSON.parse(cloudPlayers);
+        const merged = mergeById(localData, cloudData);
+        await AsyncStorage.setItem(KEYS.PLAYERS, JSON.stringify(merged));
+      } catch {
+        // Données corrompues — on conserve les données locales
+      }
     }
 
     if (cloudGames) {
-      const local = await AsyncStorage.getItem(KEYS.GAMES);
-      const localData = local ? JSON.parse(local) as Game[] : [];
-      const cloudData = JSON.parse(cloudGames) as Game[];
-
-      const merged = mergeById(localData, cloudData);
-      await AsyncStorage.setItem(KEYS.GAMES, JSON.stringify(merged));
+      try {
+        const local = await AsyncStorage.getItem(KEYS.GAMES);
+        const localData: Game[] = local ? JSON.parse(local) : [];
+        const cloudData: Game[] = JSON.parse(cloudGames);
+        const merged = mergeById(localData, cloudData);
+        await AsyncStorage.setItem(KEYS.GAMES, JSON.stringify(merged));
+      } catch {
+        // Données corrompues — on conserve les données locales
+      }
     }
   } catch (e) {
     // iCloud non disponible — on continue avec les données locales
@@ -85,8 +90,12 @@ function mergeById<T extends { id: string; startedAt?: number; createdAt?: numbe
 // ── Joueurs ───────────────────────────────────────────────────────────────────
 
 export async function getPlayers(): Promise<Player[]> {
-  const raw = await AsyncStorage.getItem(KEYS.PLAYERS);
-  return raw ? JSON.parse(raw) : [];
+  try {
+    const raw = await AsyncStorage.getItem(KEYS.PLAYERS);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
 }
 
 export async function savePlayers(players: Player[]): Promise<void> {
@@ -113,8 +122,12 @@ export async function deletePlayer(id: string): Promise<void> {
 // ── Parties ───────────────────────────────────────────────────────────────────
 
 export async function getGames(): Promise<Game[]> {
-  const raw = await AsyncStorage.getItem(KEYS.GAMES);
-  return raw ? JSON.parse(raw) : [];
+  try {
+    const raw = await AsyncStorage.getItem(KEYS.GAMES);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
 }
 
 export async function saveGames(games: Game[]): Promise<void> {
@@ -148,8 +161,12 @@ export async function getCurrentGames(): Promise<Game[]> {
 // ── Jeux custom ───────────────────────────────────────────────────────────────
 
 export async function getCustomGameConfigs(): Promise<GameConfig[]> {
-  const raw = await AsyncStorage.getItem(KEYS.CUSTOM_GAME_CONFIGS);
-  return raw ? JSON.parse(raw) : [];
+  try {
+    const raw = await AsyncStorage.getItem(KEYS.CUSTOM_GAME_CONFIGS);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
 }
 
 export async function saveCustomGameConfigs(configs: GameConfig[]): Promise<void> {

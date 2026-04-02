@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert,
 } from 'react-native';
@@ -201,7 +201,7 @@ export default function HistoryScreen() {
     const header = t('csvHeader');
     const rows = games.map(g => {
       const name = allConfigs.find(c => c.id === g.gameConfigId)?.name ?? '';
-      const date = new Date(g.finishedAt ?? 0).toLocaleDateString('fr-FR');
+      const date = new Date(g.finishedAt ?? 0).toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-GB');
       const playerNames = g.playerIds.map(id => players.find(p => p.id === id)?.name ?? '?').join(' / ');
       const winner = players.find(p => p.id === g.winnerId)?.name ?? '?';
       const rounds = g.rounds.length;
@@ -236,7 +236,7 @@ export default function HistoryScreen() {
 
   // ── Rendu ──────────────────────────────────────────────────────────────────
 
-  const styles = makeStyles(colors);
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   return (
     <SafeAreaView style={styles.safe}>
