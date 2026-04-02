@@ -161,7 +161,7 @@ export default function NewGameScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
+          <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 16 }}>
             <Text style={styles.back}>{t('backTo')}</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('chooseGame')}</Text>
@@ -228,7 +228,7 @@ export default function NewGameScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => setStep(1)}>
+        <TouchableOpacity onPress={() => setStep(1)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 16 }}>
           <Text style={styles.back}>{t('back')} {selectedGame?.name}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('playersStep')}</Text>

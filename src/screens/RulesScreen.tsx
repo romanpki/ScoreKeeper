@@ -138,7 +138,7 @@ export default function RulesScreen() {
           paddingBottom: 16,
         }}
       >
-        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginBottom: 8 }}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginBottom: 8 }} hitSlop={{ top: 12, bottom: 12, left: 12, right: 16 }}>
           <Text style={{ color: PURPLE, fontSize: 16 }}>{t('backTo')}</Text>
         </TouchableOpacity>
         <Text style={{ fontSize: 28, fontWeight: "700", color: "#FFFFFF" }}>
