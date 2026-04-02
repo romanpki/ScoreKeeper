@@ -2,7 +2,7 @@
   "expo": {
     "name": "ScoreKeeper",
     "slug": "ScoreKeeper",
-    "version": "1.0.0",
+    "version": "0.7",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -14,7 +14,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.roman.scorekeeper",
-      "buildNumber": "2"
+      "buildNumber": "1"
     },
     "android": {
       "package": "com.roman.scorekeeper",
