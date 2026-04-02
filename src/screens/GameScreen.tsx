@@ -505,7 +505,7 @@ export default function GameScreen() {
       <View style={[styles.header, { borderLeftColor: themeColor }]}>
         <View style={styles.headerInner}>
           <View style={styles.headerTop}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
+            <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 16 }}>
               <Text style={styles.back}>‹</Text>
             </TouchableOpacity>
             <Text style={styles.gameName}>{config.emoji ?? '🎮'} {config.name}</Text>

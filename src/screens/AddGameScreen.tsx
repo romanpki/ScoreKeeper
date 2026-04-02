@@ -68,7 +68,7 @@ export default function AddGameScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 16 }}>
           <Text style={styles.back}>{t('backTo')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('addGameTitle')}</Text>
