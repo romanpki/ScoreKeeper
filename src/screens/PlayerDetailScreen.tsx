@@ -47,9 +47,9 @@ export default function PlayerDetailScreen() {
     setAllConfigs(configs);
   }
 
-  if (!player) return null;
-
   const styles = useMemo(() => makeStyles(colors), [colors]);
+
+  if (!player) return null;
   const myGames = games.filter(g => g.playerIds.includes(playerId));
   const finishedGames = myGames.filter(g => g.status === 'finished');
   const wins = finishedGames.filter(g => g.winnerId === playerId).length;
