@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, Share, Animated, Alert,
@@ -8,7 +8,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { getGameById, getPlayers, upsertGame, getAllGameConfigs, getGames, saveGames } from '../storage/StorageService';
-import { Game, GameConfig, Player } from '../types';
+import { Game, GameConfig, Player, isSimpleRawInput, isBidRawInput, isWinsRawInput } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -105,7 +105,7 @@ export default function EndGameScreen() {
 
   if (!game || !config) return null;
 
-  const styles = makeStyles(colors);
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const themeColor = config.themeColor ?? '#0F6E56';
   const themeBg = themeColor + '22';
 
@@ -159,11 +159,14 @@ export default function EndGameScreen() {
   );
   const avg = allScores.reduce((s, x) => s + x.score, 0) / allScores.length;
   const doubledCount = game.rounds.reduce((count, r) =>
-    count + game.playerIds.filter(id => (r.scores[id]?.rawInput as any)?.doubled).length, 0
+    count + game.playerIds.filter(id => {
+      const raw = r.scores[id]?.rawInput;
+      return raw && isSimpleRawInput(raw) && raw.doubled;
+    }).length, 0
   );
   const firstDoubled = game.rounds.flatMap(r =>
     game.playerIds
-      .filter(id => (r.scores[id]?.rawInput as any)?.doubled)
+      .filter(id => { const raw = r.scores[id]?.rawInput; return raw && isSimpleRawInput(raw) && raw.doubled; })
       .map(id => `${players.find(p => p.id === id)?.name} M${r.roundNumber}`)
   )[0];
 
@@ -347,8 +350,9 @@ export default function EndGameScreen() {
                 </Text>
                 {game.rounds.map(r => {
                   const score = r.scores[entry.id];
-                  const doubled = (score?.rawInput as any)?.doubled;
-                  const isWinRound = (score?.rawInput as any)?.winner;
+                  const raw = score?.rawInput;
+                  const doubled = raw && isSimpleRawInput(raw) && raw.doubled;
+                  const isWinRound = raw && isWinsRawInput(raw) && raw.winner;
                   if (config.inputType === 'wins') {
                     return (
                       <Text key={r.roundNumber} style={[styles.cell, isWinRound && styles.cellWinRound, ranks[entry.id] === 1 && [styles.cellWinner, { color: themeColor }]]}>
@@ -357,8 +361,8 @@ export default function EndGameScreen() {
                     );
                   }
                   if (config.inputType === 'bid') {
-                    const bid = (score?.rawInput as any)?.bid ?? '?';
-                    const tricks = (score?.rawInput as any)?.tricks ?? '?';
+                    const bid = raw && isBidRawInput(raw) ? raw.bid : '?';
+                    const tricks = raw && isBidRawInput(raw) ? raw.tricks : '?';
                     const isOk = bid === tricks;
                     return (
                       <Text key={r.roundNumber} style={[styles.cell, isOk ? styles.cellSKOk : styles.cellSKFail, ranks[entry.id] === 1 && [styles.cellWinner, { color: themeColor }]]}>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, TextInput, Alert,
@@ -49,7 +49,7 @@ export default function PlayerDetailScreen() {
 
   if (!player) return null;
 
-  const styles = makeStyles(colors);
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const myGames = games.filter(g => g.playerIds.includes(playerId));
   const finishedGames = myGames.filter(g => g.status === 'finished');
   const wins = finishedGames.filter(g => g.winnerId === playerId).length;

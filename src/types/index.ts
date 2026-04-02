@@ -32,8 +32,44 @@ export interface GameConfig {
 
 export type GameStatus = 'playing' | 'finished';
 
+// ─── Formes de rawInput selon le type de saisie ──────────────────────────────
+
+export interface SimpleRawInput {
+  value: number;
+  first: boolean;
+  doubled: boolean;
+  original: number;
+  flip7: boolean;
+}
+
+export interface BidRawInput {
+  bid: number;
+  tricks: number;
+  bonus14: number;
+  bonusPirate: number;
+  bonusSK: boolean;
+}
+
+export interface WinsRawInput {
+  winner: boolean;
+}
+
+export type RawInput = SimpleRawInput | BidRawInput | WinsRawInput;
+
+export function isSimpleRawInput(r: RawInput): r is SimpleRawInput {
+  return 'value' in r;
+}
+export function isBidRawInput(r: RawInput): r is BidRawInput {
+  return 'bid' in r;
+}
+export function isWinsRawInput(r: RawInput): r is WinsRawInput {
+  return 'winner' in r && !('value' in r) && !('bid' in r);
+}
+
+// ─── Score d'un joueur pour une manche ───────────────────────────────────────
+
 export interface RoundScore {
-  rawInput: Record<string, unknown>;
+  rawInput: RawInput;
   computed: number;
   cumulative: number;
 }

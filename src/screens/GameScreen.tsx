@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, TextInput, Alert, Animated, useWindowDimensions,
@@ -16,7 +16,7 @@ import {
   getGameById, getPlayers, upsertGame, getGames, saveGames,
   getAllGameConfigs,
 } from '../storage/StorageService';
-import { Game, GameConfig, Player, Round } from '../types';
+import { Game, GameConfig, Player, Round, isSimpleRawInput, isBidRawInput, isWinsRawInput } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -115,7 +115,7 @@ export default function GameScreen() {
 
   if (!game || !config) return null;
 
-  const styles = makeStyles(colors);
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const themeColor = config.themeColor ?? '#6c63ff';
 
   // ── Cumulatif ────────────────────────────────────────────────────────────────
@@ -157,9 +157,9 @@ export default function GameScreen() {
     game.rounds.forEach(r => {
       game!.playerIds.forEach(id => {
         const score = r.scores[id];
-        if (score?.rawInput && (score.rawInput as any).doubled) {
+        if (score?.rawInput && isSimpleRawInput(score.rawInput) && score.rawInput.doubled) {
           const player = players.find(p => p.id === id);
-          const orig = (score.rawInput as any).original;
+          const orig = score.rawInput.original;
           notes.push(`M${r.roundNumber} ${player?.name} : ${orig} doublé à ${score.computed} (a terminé sans avoir le + bas)`);
         }
       });
@@ -354,7 +354,7 @@ export default function GameScreen() {
       return;
     }
 
-    if ((config.specialRules as any)?.allowNegative === false) {
+    if (config.specialRules?.allowNegative === false) {
       const hasNegative = game.playerIds.some(id => parseInt(inputs[id], 10) < 0);
       if (hasNegative) {
         Alert.alert(t('invalidScore'), t('noNegativeScore'));
@@ -568,9 +568,10 @@ export default function GameScreen() {
                   </View>
                   {game.rounds.map(r => {
                     const score = r.scores[player.id];
-                    const isDoubled = (score?.rawInput as any)?.doubled;
-                    const isFlip7 = (score?.rawInput as any)?.flip7;
-                    const isWin = (score?.rawInput as any)?.winner;
+                    const raw = score?.rawInput;
+                    const isDoubled = raw && isSimpleRawInput(raw) && raw.doubled;
+                    const isFlip7 = raw && isSimpleRawInput(raw) && raw.flip7;
+                    const isWin = raw && isWinsRawInput(raw) && raw.winner;
 
                     if (config.inputType === 'wins') {
                       return (
@@ -583,8 +584,8 @@ export default function GameScreen() {
                       );
                     }
                     if (config.inputType === 'bid') {
-                      const bid = (score?.rawInput as any)?.bid ?? '?';
-                      const tricks = (score?.rawInput as any)?.tricks ?? '?';
+                      const bid = raw && isBidRawInput(raw) ? raw.bid : '?';
+                      const tricks = raw && isBidRawInput(raw) ? raw.tricks : '?';
                       const isOk = bid === tricks;
                       return (
                         <Text
@@ -797,7 +798,7 @@ export default function GameScreen() {
               <View style={styles.firstPlayerChips}>
                 <TouchableOpacity
                   style={[styles.chip, flip7Achieved === null && styles.chipSelected]}
-                  onPress={() => setFlip7Achieved(null as any)}
+                  onPress={() => setFlip7Achieved(null)}
                 >
                   <Text style={[styles.chipText, flip7Achieved === null && styles.chipTextSelected]}>
                     {t('nobody')}
@@ -807,7 +808,7 @@ export default function GameScreen() {
                   <TouchableOpacity
                     key={p.id}
                     style={[styles.chip, flip7Achieved === p.id && styles.chipSelected]}
-                    onPress={() => setFlip7Achieved(p.id as any)}
+                    onPress={() => setFlip7Achieved(p.id)}
                   >
                     <Text style={[styles.chipText, flip7Achieved === p.id && styles.chipTextSelected]}>
                       {p.name}

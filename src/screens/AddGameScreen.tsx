@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   TextInput, Alert, ScrollView, Switch,
@@ -63,7 +63,7 @@ export default function AddGameScreen() {
     navigation.goBack();
   }
 
-  const styles = makeStyles(colors);
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   return (
     <SafeAreaView style={styles.safe}>

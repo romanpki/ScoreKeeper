@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, TextInput, Alert, Modal,
@@ -32,7 +32,7 @@ export default function NewGameScreen() {
   const { colors } = useTheme();
   const { t } = useLanguage();
   const preselectedGameId = route.params?.preselectedGameId;
-  const styles = makeStyles(colors);
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedGame, setSelectedGame] = useState<GameConfig | null>(null);
@@ -169,7 +169,7 @@ export default function NewGameScreen() {
         </View>
         <ScrollView contentContainerStyle={styles.grid}>
           {allGames.map(game => {
-            const isCustom = !!(game.specialRules as any)?.isCustom;
+            const isCustom = !!game.specialRules?.isCustom;
             return (
               <TouchableOpacity
                 key={game.id}
