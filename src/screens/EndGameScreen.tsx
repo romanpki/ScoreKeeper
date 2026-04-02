@@ -103,9 +103,10 @@ export default function EndGameScreen() {
     });
   }, [game]);
 
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   if (!game || !config) return null;
 
-  const styles = useMemo(() => makeStyles(colors), [colors]);
   const themeColor = config.themeColor ?? '#0F6E56';
   const themeBg = themeColor + '22';
 

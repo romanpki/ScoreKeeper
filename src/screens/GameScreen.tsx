@@ -113,9 +113,10 @@ export default function GameScreen() {
     return () => clearInterval(interval);
   }, [game?.startedAt]);
 
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   if (!game || !config) return null;
 
-  const styles = useMemo(() => makeStyles(colors), [colors]);
   const themeColor = config.themeColor ?? '#6c63ff';
 
   // ── Cumulatif ────────────────────────────────────────────────────────────────
