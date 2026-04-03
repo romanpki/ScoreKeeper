@@ -9,6 +9,8 @@
   <meta name="author" content="Roman Pki" />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://romanpki.github.io/ScoreKeeper/" />
+  <link rel="alternate" hreflang="fr" href="https://romanpki.github.io/ScoreKeeper/" />
+  <link rel="alternate" hreflang="en" href="https://romanpki.github.io/ScoreKeeper/" />
 
   <!-- Open Graph -->
   <meta property="og:title" content="ScoreKeeper — Scores pour jeux de cartes" />
@@ -95,9 +97,24 @@
       height: 56px;
     }
     .nav-logo { font-size: 17px; font-weight: 700; color: var(--purple); text-decoration: none; }
-    .nav-links { display: flex; gap: 24px; }
+    .nav-links { display: flex; align-items: center; gap: 20px; }
     .nav-links a { font-size: 14px; color: var(--sub); text-decoration: none; font-weight: 500; }
     .nav-links a:hover { color: var(--purple); }
+
+    /* ── LANG TOGGLE ── */
+    .lang-toggle {
+      font-size: 12px; font-weight: 700;
+      color: var(--purple);
+      background: var(--purple-light);
+      border: 1px solid #d0ccff;
+      border-radius: 20px;
+      padding: 4px 12px;
+      cursor: pointer;
+      letter-spacing: .5px;
+      transition: background .2s;
+      line-height: 1.4;
+    }
+    .lang-toggle:hover { background: #dddaff; }
 
     /* ── HERO ── */
     .hero {
@@ -334,12 +351,71 @@
       border: none; border-top: 1px solid var(--border);
     }
 
+    /* ── SCREENSHOTS ── */
+    .screenshots-section {
+      padding: 72px 0;
+      background: linear-gradient(180deg, #f0effe 0%, var(--bg) 100%);
+      overflow: hidden;
+    }
+    .screenshots-inner {
+      max-width: 1040px; margin: 0 auto; padding: 0 24px;
+    }
+    .screenshots-scroll {
+      display: flex;
+      gap: 20px;
+      overflow-x: auto;
+      padding: 24px 24px 32px;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .screenshots-scroll::-webkit-scrollbar { display: none; }
+    .screenshot-item {
+      flex-shrink: 0;
+      scroll-snap-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      width: 200px;
+    }
+    .screenshot-phone {
+      background: #1a1a2e;
+      border-radius: 30px;
+      padding: 14px 10px 20px;
+      box-shadow: 0 24px 48px rgba(108,99,255,.22), 0 0 0 1px rgba(255,255,255,.08);
+      width: 180px;
+    }
+    .screenshot-notch {
+      width: 70px; height: 7px;
+      background: #111; border-radius: 6px;
+      margin: 0 auto 10px;
+    }
+    .screenshot-img {
+      width: 100%; border-radius: 14px;
+      display: block;
+      aspect-ratio: 9/19;
+      object-fit: cover;
+      background: linear-gradient(160deg, #e8e6ff 0%, #f7f7f9 100%);
+    }
+    .screenshot-img.placeholder {
+      display: flex; align-items: center; justify-content: center;
+      font-size: 32px;
+    }
+    .screenshot-caption {
+      font-size: 13px; font-weight: 600;
+      color: var(--sub);
+      text-align: center;
+    }
+
     @media (max-width: 600px) {
       nav { padding: 0 16px; }
-      .nav-links { gap: 16px; }
+      .nav-links { gap: 12px; }
       .hero { padding: 56px 20px 56px; }
       section { padding: 56px 20px; }
       .games-grid { grid-template-columns: 1fr 1fr; }
+      .screenshot-phone { width: 160px; }
+      .screenshot-item { width: 180px; }
     }
   </style>
 </head>
@@ -349,35 +425,37 @@
 <nav>
   <a class="nav-logo" href="#">🃏 ScoreKeeper</a>
   <div class="nav-links">
-    <a href="#jeux">Jeux</a>
-    <a href="#fonctionnalites">Fonctionnalités</a>
+    <a href="#jeux" data-i18n="nav.games">Jeux</a>
+    <a href="#fonctionnalites" data-i18n="nav.features">Fonctionnalités</a>
+    <a href="#captures" data-i18n="nav.screenshots">Captures</a>
     <a href="#contact">Contact</a>
     <a href="https://github.com/romanpki/ScoreKeeper" target="_blank" rel="noopener">GitHub ↗</a>
+    <button class="lang-toggle" id="langToggle" onclick="toggleLang()" aria-label="Switch language">EN</button>
   </div>
 </nav>
 
 <!-- HERO -->
 <section class="hero" style="max-width:100%; padding-left:24px; padding-right:24px;">
-  <div class="hero-badge">🃏 iOS &amp; Android · Gratuit · Hors-ligne</div>
-  <h1>Gérez vos scores<br /><span>sans papier, sans stress</span></h1>
-  <p>ScoreKeeper gère automatiquement les points de vos jeux de cartes en famille ou entre amis. Skull King, Skyjo, Uno, Papayoo et bien d'autres.</p>
+  <div class="hero-badge" data-i18n="hero.badge">🃏 iOS &amp; Android · Gratuit · Hors-ligne</div>
+  <h1 data-i18n="hero.h1">Gérez vos scores<br /><span>sans papier, sans stress</span></h1>
+  <p data-i18n="hero.sub">ScoreKeeper gère automatiquement les points de vos jeux de cartes en famille ou entre amis. Skull King, Skyjo, Uno, Papayoo et bien d'autres.</p>
   <div class="hero-cta">
     <a class="btn-store" href="#" aria-label="Télécharger sur l'App Store (bientôt disponible)" title="Bientôt disponible sur l'App Store">
       <span class="btn-store-icon"> </span>
       <span class="btn-store-label">
-        <span class="btn-store-sub">Bientôt sur</span>
+        <span class="btn-store-sub" data-i18n="hero.store.soon">Bientôt sur</span>
         <span class="btn-store-name">App Store</span>
       </span>
     </a>
     <a class="btn-store" href="#" aria-label="Télécharger sur Google Play (bientôt disponible)" title="Bientôt disponible sur Google Play">
       <span class="btn-store-icon">▶</span>
       <span class="btn-store-label">
-        <span class="btn-store-sub">Bientôt sur</span>
+        <span class="btn-store-sub" data-i18n="hero.store.soon">Bientôt sur</span>
         <span class="btn-store-name">Google Play</span>
       </span>
     </a>
   </div>
-  <p style="font-size:12px;color:var(--muted);margin-top:14px;">Publication prévue prochainement</p>
+  <p style="font-size:12px;color:var(--muted);margin-top:14px;" data-i18n="hero.soon">Publication prévue prochainement</p>
 
   <!-- MOCKUP -->
   <div class="mockup-wrap">
@@ -418,11 +496,59 @@
   </div>
 </section>
 
+<!-- CAPTURES -->
+<div class="screenshots-section" id="captures">
+  <div class="screenshots-inner">
+    <div class="section-label" data-i18n="sc.label">Aperçu</div>
+    <h2 data-i18n="sc.h2">L'app en action</h2>
+    <p class="section-sub" data-i18n="sc.sub">Simple à prendre en main, efficace autour d'une table.</p>
+  </div>
+  <div class="screenshots-scroll">
+
+    <div class="screenshot-item">
+      <div class="screenshot-phone">
+        <div class="screenshot-notch"></div>
+        <img class="screenshot-img"
+             src="docs/screenshots/screen1.png"
+             alt="Partie en cours — saisie des scores"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+        <div class="screenshot-img placeholder" style="display:none;">📝</div>
+      </div>
+      <div class="screenshot-caption" data-i18n="sc.cap1">Saisie des scores</div>
+    </div>
+
+    <div class="screenshot-item">
+      <div class="screenshot-phone">
+        <div class="screenshot-notch"></div>
+        <img class="screenshot-img"
+             src="docs/screenshots/screen2.png"
+             alt="Fin de partie — podium"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+        <div class="screenshot-img placeholder" style="display:none;">🏆</div>
+      </div>
+      <div class="screenshot-caption" data-i18n="sc.cap2">Podium de fin de partie</div>
+    </div>
+
+    <div class="screenshot-item">
+      <div class="screenshot-phone">
+        <div class="screenshot-notch"></div>
+        <img class="screenshot-img"
+             src="docs/screenshots/screen3.png"
+             alt="Historique et statistiques"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+        <div class="screenshot-img placeholder" style="display:none;">📊</div>
+      </div>
+      <div class="screenshot-caption" data-i18n="sc.cap3">Historique &amp; stats</div>
+    </div>
+
+  </div>
+</div>
+
 <!-- JEUX -->
 <section id="jeux">
-  <div class="section-label">Jeux supportés</div>
-  <h2>7 jeux préconfigurés,<br />et tous vos jeux perso</h2>
-  <p class="section-sub">Chaque jeu embarque ses propres règles de calcul. Les règles sont accessibles directement dans l'app.</p>
+  <div class="section-label" data-i18n="games.label">Jeux supportés</div>
+  <h2 data-i18n="games.h2">7 jeux préconfigurés,<br />et tous vos jeux perso</h2>
+  <p class="section-sub" data-i18n="games.sub">Chaque jeu embarque ses propres règles de calcul. Les règles sont accessibles directement dans l'app.</p>
 
   <div class="games-grid">
     <div class="game-card">
@@ -480,9 +606,9 @@
 
 <!-- FONCTIONNALITÉS -->
 <section id="fonctionnalites">
-  <div class="section-label">Fonctionnalités</div>
-  <h2>Tout ce qu'il faut,<br />rien de superflu</h2>
-  <p class="section-sub">Conçu pour être rapide à prendre en main autour d'une table.</p>
+  <div class="section-label" data-i18n="feat.label">Fonctionnalités</div>
+  <h2 data-i18n="feat.h2">Tout ce qu'il faut,<br />rien de superflu</h2>
+  <p class="section-sub" data-i18n="feat.sub">Conçu pour être rapide à prendre en main autour d'une table.</p>
 
   <div class="features-grid">
     <div class="feature-card">
@@ -537,8 +663,29 @@
     <div class="feature-card">
       <div class="feature-icon">🔒</div>
       <div>
-        <div class="feature-title">100 % hors-ligne</div>
-        <div class="feature-desc">Aucun compte, aucune connexion requise. Données stockées localement sur votre appareil.</div>
+        <div class="feature-title" data-i18n="feat.offline.title">100 % hors-ligne</div>
+        <div class="feature-desc" data-i18n="feat.offline.desc">Aucun compte, aucune connexion requise. Données stockées localement sur votre appareil.</div>
+      </div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🌙</div>
+      <div>
+        <div class="feature-title" data-i18n="feat.dark.title">Mode sombre</div>
+        <div class="feature-desc" data-i18n="feat.dark.desc">L'interface suit automatiquement le thème de votre téléphone — clair ou sombre.</div>
+      </div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🇫🇷</div>
+      <div>
+        <div class="feature-title" data-i18n="feat.lang.title">Bilingue FR / EN</div>
+        <div class="feature-desc" data-i18n="feat.lang.desc">L'application et ses règles de jeu sont disponibles en français et en anglais.</div>
+      </div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">☁️</div>
+      <div>
+        <div class="feature-title" data-i18n="feat.icloud.title">Synchronisation iCloud</div>
+        <div class="feature-desc" data-i18n="feat.icloud.desc">Vos parties et joueurs se synchronisent automatiquement entre vos appareils Apple via iCloud.</div>
       </div>
     </div>
   </div>
@@ -547,31 +694,31 @@
 <!-- TRUST BAND -->
 <div class="trust-band">
   <div style="max-width:1040px;margin:0 auto;">
-    <h2>Open source &amp; respectueux de votre vie privée</h2>
-    <p>ScoreKeeper ne collecte aucune donnée. Aucun serveur tiers, aucune publicité, aucun tracking. Le code source est entièrement disponible sur GitHub.</p>
+    <h2 data-i18n="trust.h2">Open source &amp; respectueux de votre vie privée</h2>
+    <p data-i18n="trust.sub">ScoreKeeper ne collecte aucune donnée. Aucun serveur tiers, aucune publicité, aucun tracking. Le code source est entièrement disponible sur GitHub.</p>
     <div class="trust-links">
-      <a class="trust-link" href="https://github.com/romanpki/ScoreKeeper" target="_blank" rel="noopener">⭐ Code source sur GitHub</a>
-      <a class="trust-link" href="https://github.com/romanpki/ScoreKeeper/blob/main/Documentation/Politique%20de%20confidentialit%C3%A9%20%E2%80%94%20ScoreKeeper.rtf" target="_blank" rel="noopener">🔐 Politique de confidentialité</a>
+      <a class="trust-link" href="https://github.com/romanpki/ScoreKeeper" target="_blank" rel="noopener" data-i18n="trust.github">⭐ Code source sur GitHub</a>
+      <a class="trust-link" href="https://github.com/romanpki/ScoreKeeper/blob/main/Documentation/Politique%20de%20confidentialit%C3%A9%20%E2%80%94%20ScoreKeeper.rtf" target="_blank" rel="noopener" data-i18n="trust.privacy">🔐 Politique de confidentialité</a>
     </div>
   </div>
 </div>
 
 <!-- CONTACT -->
 <section id="contact" class="contact-section">
-  <div class="section-label">Contact</div>
-  <h2>Une question ?<br />Un problème ?</h2>
-  <p class="section-sub">Signaler un bug, suggérer une fonctionnalité ou juste dire bonjour — toutes les demandes sont bienvenues.</p>
+  <div class="section-label" data-i18n="contact.label">Contact</div>
+  <h2 data-i18n="contact.h2">Une question ?<br />Un problème ?</h2>
+  <p class="section-sub" data-i18n="contact.sub">Signaler un bug, suggérer une fonctionnalité ou juste dire bonjour — toutes les demandes sont bienvenues.</p>
 
   <form id="contact-form" novalidate>
     <div class="form-group">
-      <label for="subject">Sujet</label>
-      <input type="text" id="subject" placeholder="Bug, suggestion, question…" required />
+      <label for="subject" data-i18n="contact.subject">Sujet</label>
+      <input type="text" id="subject" data-i18n-placeholder="contact.subject.ph" placeholder="Bug, suggestion, question…" required />
     </div>
     <div class="form-group">
-      <label for="body">Message</label>
-      <textarea id="body" placeholder="Décrivez votre demande…" required></textarea>
+      <label for="body" data-i18n="contact.body">Message</label>
+      <textarea id="body" data-i18n-placeholder="contact.body.ph" placeholder="Décrivez votre demande…" required></textarea>
     </div>
-    <button type="submit" class="btn-submit">Envoyer un email →</button>
+    <button type="submit" class="btn-submit" data-i18n="contact.send">Envoyer un email →</button>
   </form>
   <script>
     document.getElementById('contact-form').addEventListener('submit', function(e) {
@@ -590,11 +737,148 @@
 <footer>
   <div class="footer-links">
     <a href="https://github.com/romanpki/ScoreKeeper" target="_blank" rel="noopener">GitHub</a>
-    <a href="https://github.com/romanpki/ScoreKeeper/blob/main/Documentation/Politique%20de%20confidentialit%C3%A9%20%E2%80%94%20ScoreKeeper.rtf" target="_blank" rel="noopener">Politique de confidentialité</a>
+    <a href="https://github.com/romanpki/ScoreKeeper/blob/main/Documentation/Politique%20de%20confidentialit%C3%A9%20%E2%80%94%20ScoreKeeper.rtf" target="_blank" rel="noopener" data-i18n="footer.privacy">Politique de confidentialité</a>
     <a href="#contact">Contact</a>
   </div>
-  <p>© 2026 ScoreKeeper — Fait avec ☕ et beaucoup de parties de Skull King</p>
+  <p data-i18n="footer.copy">© 2026 ScoreKeeper — Fait avec ☕ et beaucoup de parties de Skull King</p>
 </footer>
+
+<script>
+// ── i18n ──────────────────────────────────────────────────────────────────────
+const T = {
+  fr: {
+    'nav.games':       'Jeux',
+    'nav.features':    'Fonctionnalités',
+    'nav.screenshots': 'Captures',
+
+    'hero.badge':      '🃏 iOS &amp; Android · Gratuit · Hors-ligne',
+    'hero.h1':         'Gérez vos scores<br /><span>sans papier, sans stress</span>',
+    'hero.sub':        'ScoreKeeper gère automatiquement les points de vos jeux de cartes en famille ou entre amis. Skull King, Skyjo, Uno, Papayoo et bien d\'autres.',
+    'hero.store.soon': 'Bientôt sur',
+    'hero.soon':       'Publication prévue prochainement',
+
+    'sc.label': 'Aperçu',
+    'sc.h2':    'L\'app en action',
+    'sc.sub':   'Simple à prendre en main, efficace autour d\'une table.',
+    'sc.cap1':  'Saisie des scores',
+    'sc.cap2':  'Podium de fin de partie',
+    'sc.cap3':  'Historique &amp; stats',
+
+    'games.label': 'Jeux supportés',
+    'games.h2':    '7 jeux préconfigurés,<br />et tous vos jeux perso',
+    'games.sub':   'Chaque jeu embarque ses propres règles de calcul. Les règles sont accessibles directement dans l\'app.',
+
+    'feat.label': 'Fonctionnalités',
+    'feat.h2':    'Tout ce qu\'il faut,<br />rien de superflu',
+    'feat.sub':   'Conçu pour être rapide à prendre en main autour d\'une table.',
+
+    'feat.offline.title': '100 % hors-ligne',
+    'feat.offline.desc':  'Aucun compte, aucune connexion requise. Données stockées localement sur votre appareil.',
+    'feat.dark.title':    'Mode sombre',
+    'feat.dark.desc':     'L\'interface suit automatiquement le thème de votre téléphone — clair ou sombre.',
+    'feat.lang.title':    'Bilingue FR / EN',
+    'feat.lang.desc':     'L\'application et ses règles de jeu sont disponibles en français et en anglais.',
+    'feat.icloud.title':  'Synchronisation iCloud',
+    'feat.icloud.desc':   'Vos parties et joueurs se synchronisent automatiquement entre vos appareils Apple via iCloud.',
+
+    'trust.h2':      'Open source &amp; respectueux de votre vie privée',
+    'trust.sub':     'ScoreKeeper ne collecte aucune donnée. Aucun serveur tiers, aucune publicité, aucun tracking. Le code source est entièrement disponible sur GitHub.',
+    'trust.github':  '⭐ Code source sur GitHub',
+    'trust.privacy': '🔐 Politique de confidentialité',
+
+    'contact.label':    'Contact',
+    'contact.h2':       'Une question ?<br />Un problème ?',
+    'contact.sub':      'Signaler un bug, suggérer une fonctionnalité ou juste dire bonjour — toutes les demandes sont bienvenues.',
+    'contact.subject':  'Sujet',
+    'contact.subject.ph': 'Bug, suggestion, question…',
+    'contact.body':     'Message',
+    'contact.body.ph':  'Décrivez votre demande…',
+    'contact.send':     'Envoyer un email →',
+
+    'footer.privacy': 'Politique de confidentialité',
+    'footer.copy':    '© 2026 ScoreKeeper — Fait avec ☕ et beaucoup de parties de Skull King',
+  },
+  en: {
+    'nav.games':       'Games',
+    'nav.features':    'Features',
+    'nav.screenshots': 'Screenshots',
+
+    'hero.badge':      '🃏 iOS &amp; Android · Free · Offline',
+    'hero.h1':         'Keep score,<br /><span>without the paper mess</span>',
+    'hero.sub':        'ScoreKeeper automatically tracks points for your card games with family and friends. Skull King, Skyjo, Uno, Papayoo and many more.',
+    'hero.store.soon': 'Coming soon on',
+    'hero.soon':       'Coming soon',
+
+    'sc.label': 'Preview',
+    'sc.h2':    'The app in action',
+    'sc.sub':   'Easy to pick up, effective around the table.',
+    'sc.cap1':  'Score entry',
+    'sc.cap2':  'End-game podium',
+    'sc.cap3':  'History &amp; stats',
+
+    'games.label': 'Supported games',
+    'games.h2':    '7 built-in games,<br />plus all your custom ones',
+    'games.sub':   'Each game comes with its own scoring rules, accessible right inside the app.',
+
+    'feat.label': 'Features',
+    'feat.h2':    'Everything you need,<br />nothing you don\'t',
+    'feat.sub':   'Designed to be picked up instantly around the table.',
+
+    'feat.offline.title': '100 % offline',
+    'feat.offline.desc':  'No account, no internet required. Data stored locally on your device.',
+    'feat.dark.title':    'Dark mode',
+    'feat.dark.desc':     'The interface automatically follows your phone\'s theme — light or dark.',
+    'feat.lang.title':    'Bilingual FR / EN',
+    'feat.lang.desc':     'The app and its built-in game rules are available in both French and English.',
+    'feat.icloud.title':  'iCloud sync',
+    'feat.icloud.desc':   'Your games and players sync automatically across all your Apple devices via iCloud.',
+
+    'trust.h2':      'Open source &amp; privacy-first',
+    'trust.sub':     'ScoreKeeper collects no data whatsoever. No third-party servers, no ads, no tracking. The full source code is available on GitHub.',
+    'trust.github':  '⭐ Source code on GitHub',
+    'trust.privacy': '🔐 Privacy policy',
+
+    'contact.label':    'Contact',
+    'contact.h2':       'A question?<br />An issue?',
+    'contact.sub':      'Report a bug, suggest a feature, or just say hello — all messages are welcome.',
+    'contact.subject':  'Subject',
+    'contact.subject.ph': 'Bug, suggestion, question…',
+    'contact.body':     'Message',
+    'contact.body.ph':  'Describe your request…',
+    'contact.send':     'Send an email →',
+
+    'footer.privacy': 'Privacy policy',
+    'footer.copy':    '© 2026 ScoreKeeper — Made with ☕ and many rounds of Skull King',
+  }
+};
+
+let currentLang = localStorage.getItem('sk-lang') || 'fr';
+
+function applyLang(lang) {
+  currentLang = lang;
+  document.documentElement.lang = lang;
+  localStorage.setItem('sk-lang', lang);
+  const btn = document.getElementById('langToggle');
+  if (btn) btn.textContent = lang === 'fr' ? 'EN' : 'FR';
+
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (T[lang][key] !== undefined) el.innerHTML = T[lang][key];
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (T[lang][key] !== undefined) el.placeholder = T[lang][key];
+  });
+}
+
+function toggleLang() {
+  applyLang(currentLang === 'fr' ? 'en' : 'fr');
+}
+
+// Apply on load
+applyLang(currentLang);
+// ─────────────────────────────────────────────────────────────────────────────
+</script>
 
 </body>
 </html>
