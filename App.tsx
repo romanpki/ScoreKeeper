@@ -2,11 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import AppNavigator from './src/navigation/AppNavigator';
 import { syncFromCloud } from './src/storage/StorageService';
 import CloudSyncToast from './src/components/CloudSyncToast';
+import TutorialModal from './src/components/TutorialModal';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { LanguageProvider } from './src/context/LanguageContext';
+import { PrefsProvider } from './src/context/PrefsContext';
+
+const TUTORIAL_KEY = '@tutorial_seen';
 
 function ThemedStatusBar() {
   const { isDark } = useTheme();
@@ -15,6 +20,7 @@ function ThemedStatusBar() {
 
 export default function App() {
   const [ready, setReady] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -22,12 +28,18 @@ export default function App() {
         await syncFromCloud();
       } catch (e) {
         // iCloud non disponible, on continue
-      } finally {
-        setReady(true);
       }
+      const seen = await AsyncStorage.getItem(TUTORIAL_KEY);
+      if (!seen) setShowTutorial(true);
+      setReady(true);
     };
     init();
   }, []);
+
+  function handleTutorialClose() {
+    setShowTutorial(false);
+    AsyncStorage.setItem(TUTORIAL_KEY, '1');
+  }
 
   if (!ready) {
     return (
@@ -42,11 +54,14 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <LanguageProvider>
-        <ThemeProvider>
-          <ThemedStatusBar />
-          <AppNavigator />
-          <CloudSyncToast />
-        </ThemeProvider>
+        <PrefsProvider>
+          <ThemeProvider>
+            <ThemedStatusBar />
+            <AppNavigator />
+            <CloudSyncToast />
+            <TutorialModal visible={showTutorial} onClose={handleTutorialClose} />
+          </ThemeProvider>
+        </PrefsProvider>
       </LanguageProvider>
     </GestureHandlerRootView>
   );
