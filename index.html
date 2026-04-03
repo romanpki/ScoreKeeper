@@ -181,49 +181,6 @@
     .btn-store-name { font-size: 15px; font-weight: 700; line-height: 1.2; }
     .btn-store-icon { font-size: 22px; line-height: 1; }
 
-    /* ── PHONE MOCKUP ── */
-    .mockup-wrap {
-      margin: 56px auto 0;
-      max-width: 300px;
-      position: relative;
-    }
-    .mockup {
-      background: #1a1a2e;
-      border-radius: 36px;
-      padding: 20px 16px 28px;
-      box-shadow: 0 32px 64px rgba(108,99,255,.25), 0 0 0 1px rgba(255,255,255,.1);
-    }
-    .mockup-notch {
-      width: 90px; height: 10px;
-      background: #111;
-      border-radius: 8px;
-      margin: 0 auto 16px;
-    }
-    .mockup-screen {
-      background: #f7f7f9;
-      border-radius: 20px;
-      padding: 16px 12px;
-      min-height: 420px;
-    }
-    .mockup-bar {
-      background: #fff;
-      border-radius: 10px;
-      padding: 10px 12px;
-      margin-bottom: 10px;
-      display: flex; align-items: center; gap: 8px;
-      border-left: 4px solid var(--purple);
-    }
-    .mockup-dot {
-      width: 28px; height: 28px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 13px; font-weight: 700; color: #fff;
-      flex-shrink: 0;
-    }
-    .mockup-name { font-size: 12px; font-weight: 600; color: var(--text); }
-    .mockup-score { font-size: 12px; font-weight: 700; margin-left: auto; }
-    .mockup-label { font-size: 10px; color: var(--muted); margin-bottom: 6px; font-weight: 600; letter-spacing: .3px; }
-    .mockup-game-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
-
     /* ── GAMES GRID ── */
     section { padding: 72px 24px; max-width: 1040px; margin: 0 auto; }
     .section-label {
@@ -352,14 +309,6 @@
     }
 
     /* ── SCREENSHOTS ── */
-    .screenshots-section {
-      padding: 72px 0;
-      background: linear-gradient(180deg, #f0effe 0%, var(--bg) 100%);
-      overflow: hidden;
-    }
-    .screenshots-inner {
-      max-width: 1040px; margin: 0 auto; padding: 0 24px;
-    }
     .screenshots-scroll {
       display: flex;
       gap: 20px;
@@ -427,7 +376,6 @@
   <div class="nav-links">
     <a href="#jeux" data-i18n="nav.games">Jeux</a>
     <a href="#fonctionnalites" data-i18n="nav.features">Fonctionnalités</a>
-    <a href="#captures" data-i18n="nav.screenshots">Captures</a>
     <a href="#contact">Contact</a>
     <a href="https://github.com/romanpki/ScoreKeeper" target="_blank" rel="noopener">GitHub ↗</a>
     <button class="lang-toggle" id="langToggle" onclick="toggleLang()" aria-label="Switch language">EN</button>
@@ -457,59 +405,26 @@
   </div>
   <p style="font-size:12px;color:var(--muted);margin-top:14px;" data-i18n="hero.soon">Publication prévue prochainement</p>
 
-  <!-- MOCKUP -->
-  <div class="mockup-wrap">
-    <div class="mockup">
-      <div class="mockup-notch"></div>
-      <div class="mockup-screen">
-        <div class="mockup-label">PARTIE EN COURS</div>
-        <div class="mockup-game-title">☠️ Skull King — Manche 6</div>
-        <div class="mockup-bar">
-          <div class="mockup-dot" style="background:#6c63ff;">A</div>
-          <div>
-            <div class="mockup-name">Alice</div>
-            <div style="font-size:11px;color:#888;">Mise 3/3 ✓</div>
-          </div>
-          <div class="mockup-score" style="color:#0F6E56;">+60 pts</div>
-        </div>
-        <div class="mockup-bar">
-          <div class="mockup-dot" style="background:#E33B3B;">B</div>
-          <div>
-            <div class="mockup-name">Bob</div>
-            <div style="font-size:11px;color:#888;">Mise 2/4 ✗</div>
-          </div>
-          <div class="mockup-score" style="color:#E33B3B;">−20 pts</div>
-        </div>
-        <div class="mockup-bar">
-          <div class="mockup-dot" style="background:#EF9F27;">C</div>
-          <div>
-            <div class="mockup-name">Clara</div>
-            <div style="font-size:11px;color:#888;">Mise 0/0 ✓</div>
-          </div>
-          <div class="mockup-score" style="color:#0F6E56;">+60 pts</div>
-        </div>
-        <div style="margin-top:14px; background:#6c63ff; border-radius:10px; padding:11px; text-align:center;">
-          <span style="color:#fff; font-size:13px; font-weight:700;">✓ Valider la manche</span>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- CAPTURES -->
-<div class="screenshots-section" id="captures">
-  <div class="screenshots-inner">
-    <div class="section-label" data-i18n="sc.label">Aperçu</div>
-    <h2 data-i18n="sc.h2">L'app en action</h2>
-    <p class="section-sub" data-i18n="sc.sub">Simple à prendre en main, efficace autour d'une table.</p>
-  </div>
-  <div class="screenshots-scroll">
+  <!-- SCREENSHOTS -->
+  <div class="screenshots-scroll" style="margin-top:48px; justify-content:center;">
 
     <div class="screenshot-item">
       <div class="screenshot-phone">
         <div class="screenshot-notch"></div>
         <img class="screenshot-img"
-             src="docs/screenshots/screen1.png"
+             src="docs/screenshots/screen-home.png"
+             alt="Accueil"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+        <div class="screenshot-img placeholder" style="display:none;">🏠</div>
+      </div>
+      <div class="screenshot-caption" data-i18n="sc.cap0">Accueil</div>
+    </div>
+
+    <div class="screenshot-item">
+      <div class="screenshot-phone">
+        <div class="screenshot-notch"></div>
+        <img class="screenshot-img"
+             src="docs/screenshots/screen-game.png"
              alt="Partie en cours — saisie des scores"
              onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
         <div class="screenshot-img placeholder" style="display:none;">📝</div>
@@ -521,7 +436,7 @@
       <div class="screenshot-phone">
         <div class="screenshot-notch"></div>
         <img class="screenshot-img"
-             src="docs/screenshots/screen2.png"
+             src="docs/screenshots/screen-endgame.png"
              alt="Fin de partie — podium"
              onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
         <div class="screenshot-img placeholder" style="display:none;">🏆</div>
@@ -529,20 +444,8 @@
       <div class="screenshot-caption" data-i18n="sc.cap2">Podium de fin de partie</div>
     </div>
 
-    <div class="screenshot-item">
-      <div class="screenshot-phone">
-        <div class="screenshot-notch"></div>
-        <img class="screenshot-img"
-             src="docs/screenshots/screen3.png"
-             alt="Historique et statistiques"
-             onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
-        <div class="screenshot-img placeholder" style="display:none;">📊</div>
-      </div>
-      <div class="screenshot-caption" data-i18n="sc.cap3">Historique &amp; stats</div>
-    </div>
-
   </div>
-</div>
+</section>
 
 <!-- JEUX -->
 <section id="jeux">
@@ -747,9 +650,8 @@
 // ── i18n ──────────────────────────────────────────────────────────────────────
 const T = {
   fr: {
-    'nav.games':       'Jeux',
-    'nav.features':    'Fonctionnalités',
-    'nav.screenshots': 'Captures',
+    'nav.games':    'Jeux',
+    'nav.features': 'Fonctionnalités',
 
     'hero.badge':      '🃏 iOS &amp; Android · Gratuit · Hors-ligne',
     'hero.h1':         'Gérez vos scores<br /><span>sans papier, sans stress</span>',
@@ -757,12 +659,9 @@ const T = {
     'hero.store.soon': 'Bientôt sur',
     'hero.soon':       'Publication prévue prochainement',
 
-    'sc.label': 'Aperçu',
-    'sc.h2':    'L\'app en action',
-    'sc.sub':   'Simple à prendre en main, efficace autour d\'une table.',
-    'sc.cap1':  'Saisie des scores',
-    'sc.cap2':  'Podium de fin de partie',
-    'sc.cap3':  'Historique &amp; stats',
+    'sc.cap0': 'Accueil',
+    'sc.cap1': 'Saisie des scores',
+    'sc.cap2': 'Podium de fin de partie',
 
     'games.label': 'Jeux supportés',
     'games.h2':    '7 jeux préconfigurés,<br />et tous vos jeux perso',
@@ -799,9 +698,8 @@ const T = {
     'footer.copy':    '© 2026 ScoreKeeper — Fait avec ☕ et beaucoup de parties de Skull King',
   },
   en: {
-    'nav.games':       'Games',
-    'nav.features':    'Features',
-    'nav.screenshots': 'Screenshots',
+    'nav.games':    'Games',
+    'nav.features': 'Features',
 
     'hero.badge':      '🃏 iOS &amp; Android · Free · Offline',
     'hero.h1':         'Keep score,<br /><span>without the paper mess</span>',
@@ -809,12 +707,9 @@ const T = {
     'hero.store.soon': 'Coming soon on',
     'hero.soon':       'Coming soon',
 
-    'sc.label': 'Preview',
-    'sc.h2':    'The app in action',
-    'sc.sub':   'Easy to pick up, effective around the table.',
-    'sc.cap1':  'Score entry',
-    'sc.cap2':  'End-game podium',
-    'sc.cap3':  'History &amp; stats',
+    'sc.cap0': 'Home',
+    'sc.cap1': 'Score entry',
+    'sc.cap2': 'End-game podium',
 
     'games.label': 'Supported games',
     'games.h2':    '7 built-in games,<br />plus all your custom ones',
