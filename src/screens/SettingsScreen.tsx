@@ -6,9 +6,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
+import * as Application from 'expo-application';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import type { Lang } from '../context/LanguageContext';
+import { usePrefs } from '../context/PrefsContext';
+import TutorialModal from '../components/TutorialModal';
 
 const PURPLE = '#6c63ff';
 
@@ -16,7 +19,9 @@ export default function SettingsScreen() {
   const navigation = useNavigation();
   const { colors, isDark, toggleTheme } = useTheme();
   const { t, lang, setLang } = useLanguage();
+  const { keepAwake, setKeepAwake, hapticsEnabled, setHapticsEnabled } = usePrefs();
   const [notifStatus, setNotifStatus] = useState<'granted' | 'denied' | 'undetermined'>('undetermined');
+  const [showTutorial, setShowTutorial] = useState(false);
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   useEffect(() => {
@@ -37,7 +42,9 @@ export default function SettingsScreen() {
     }
   }
 
-  const version = Constants.expoConfig?.version ?? '—';
+  const nativeVersion = Application.nativeApplicationVersion ?? Constants.expoConfig?.version ?? '—';
+  const buildNumber = Application.nativeBuildVersion;
+  const version = buildNumber ? `${nativeVersion} (${buildNumber})` : nativeVersion;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -108,6 +115,44 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* Gameplay */}
+        <Text style={styles.sectionLabel}>{t('gameplayLabel').toUpperCase()}</Text>
+        <View style={styles.card}>
+          <View style={[styles.row, styles.rowBorder]}>
+            <View style={styles.rowLeft}>
+              <Text style={styles.rowLabel}>{t('keepAwakeLabel')}</Text>
+              <Text style={styles.rowSub}>{t('keepAwakeSub')}</Text>
+            </View>
+            <Switch
+              value={keepAwake}
+              onValueChange={setKeepAwake}
+              trackColor={{ false: colors.border, true: PURPLE + '88' }}
+              thumbColor={keepAwake ? PURPLE : colors.surface2}
+            />
+          </View>
+          <View style={styles.row}>
+            <View style={styles.rowLeft}>
+              <Text style={styles.rowLabel}>{t('hapticsLabel')}</Text>
+              <Text style={styles.rowSub}>{t('hapticsSub')}</Text>
+            </View>
+            <Switch
+              value={hapticsEnabled}
+              onValueChange={setHapticsEnabled}
+              trackColor={{ false: colors.border, true: PURPLE + '88' }}
+              thumbColor={hapticsEnabled ? PURPLE : colors.surface2}
+            />
+          </View>
+        </View>
+
+        {/* Aide */}
+        <Text style={styles.sectionLabel}>{t('helpLabel').toUpperCase()}</Text>
+        <View style={styles.card}>
+          <TouchableOpacity style={styles.row} onPress={() => setShowTutorial(true)}>
+            <Text style={styles.rowLabel}>{t('tutorialBtn')}</Text>
+            <Text style={[styles.rowValue, { color: PURPLE }]}>›</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* À propos */}
         <Text style={styles.sectionLabel}>{t('aboutLabel').toUpperCase()}</Text>
         <View style={styles.card}>
@@ -121,6 +166,8 @@ export default function SettingsScreen() {
         </View>
 
       </ScrollView>
+
+      <TutorialModal visible={showTutorial} onClose={() => setShowTutorial(false)} />
     </SafeAreaView>
   );
 }

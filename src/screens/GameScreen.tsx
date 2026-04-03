@@ -4,6 +4,7 @@ import {
   ScrollView, TextInput, Alert, Animated, useWindowDimensions,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import * as Notifications from 'expo-notifications';
 import { GAME_RULES } from '../data/gameRules';
 import { computeSkullKingScore } from '../games/skullking';
@@ -19,6 +20,7 @@ import {
 import { Game, GameConfig, Player, Round, isSimpleRawInput, isBidRawInput, isWinsRawInput } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
+import { usePrefs } from '../context/PrefsContext';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'Game'>;
 type RoutePropType = RouteProp<RootStackParamList, 'Game'>;
@@ -29,6 +31,7 @@ export default function GameScreen() {
   const { gameId } = route.params;
   const { colors } = useTheme();
   const { t } = useLanguage();
+  const { keepAwake, hapticsEnabled } = usePrefs();
 
   const [game, setGame] = useState<Game | null>(null);
   const [config, setConfig] = useState<GameConfig | null>(null);
@@ -51,6 +54,16 @@ export default function GameScreen() {
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 350, useNativeDriver: true }).start();
   }, []);
+
+  useEffect(() => {
+    if (!keepAwake) return;
+    activateKeepAwakeAsync();
+    return () => { deactivateKeepAwake(); };
+  }, [keepAwake]);
+
+  function triggerHaptic(type: Haptics.NotificationFeedbackType) {
+    if (hapticsEnabled) Haptics.notificationAsync(type);
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -270,7 +283,7 @@ export default function GameScreen() {
       Alert.alert(t('error'), t('saveError'));
       return;
     }
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    triggerHaptic(Haptics.NotificationFeedbackType.Success);
     setWinRoundWinner(null);
 
     if (isFinished) {
@@ -320,7 +333,7 @@ export default function GameScreen() {
       Alert.alert(t('error'), t('saveError'));
       return;
     }
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    triggerHaptic(Haptics.NotificationFeedbackType.Success);
 
     const bids: Record<string, number> = {};
     const tricks: Record<string, number> = {};
@@ -426,7 +439,7 @@ export default function GameScreen() {
       Alert.alert(t('error'), t('saveError'));
       return;
     }
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    triggerHaptic(Haptics.NotificationFeedbackType.Success);
     setFirstPlayerId(null);
     setFlip7Achieved(null);
 
@@ -453,7 +466,7 @@ export default function GameScreen() {
             const updatedGame = { ...game, rounds: game.rounds.slice(0, -1) };
             await upsertGame(updatedGame);
             setGame(updatedGame);
-            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            triggerHaptic(Haptics.NotificationFeedbackType.Warning);
           },
         },
       ]
