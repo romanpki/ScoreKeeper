@@ -37,6 +37,7 @@ export const en: Strings = {
   availableGames: 'Available games',
   addGame: '+ Add',
   rulesAlertTitle: 'Rules — {{name}}',
+  fullRulesBtn: 'Full rules →',
 
   // ── GameScreen ───────────────────────────────────────────────────────────────
   notifTitle: 'Game in progress 🎮',

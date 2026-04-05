@@ -196,7 +196,14 @@ export default function HomeScreen() {
                   {rules ? (
                     <TouchableOpacity
                       style={styles.rulesBtn}
-                      onPress={() => Alert.alert(t('rulesAlertTitle', { name: game.name }), rules)}
+                      onPress={() => Alert.alert(
+                        t('rulesAlertTitle', { name: game.name }),
+                        rules,
+                        [
+                          { text: t('cancel'), style: 'cancel' },
+                          { text: t('fullRulesBtn'), onPress: () => navigation.navigate('Rules', { gameId: game.id }) },
+                        ]
+                      )}
                     >
                       <Text style={styles.rulesBtnText}>?</Text>
                     </TouchableOpacity>

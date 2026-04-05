@@ -35,6 +35,7 @@ export const fr = {
   availableGames: 'Jeux disponibles',
   addGame: '+ Ajouter',
   rulesAlertTitle: 'Règles — {{name}}',
+  fullRulesBtn: 'Règles complètes →',
 
   // ── GameScreen ───────────────────────────────────────────────────────────────
   notifTitle: 'Partie en cours 🎮',
