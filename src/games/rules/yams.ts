@@ -42,7 +42,7 @@ export const yamsRules = {
     ],
   },
 
-  bonus:
+  bonusSection:
     "Bonus section haute : si la somme des 6 cases de la section haute (As à Six) est égale ou supérieure à 63 points, le joueur reçoit 37 points supplémentaires. Soyez stratégique : 63 points correspondent à 3 fois chaque valeur en moyenne.",
 
   endGame:
