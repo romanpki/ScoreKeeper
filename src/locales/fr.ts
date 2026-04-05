@@ -259,6 +259,7 @@ export const fr = {
   tutorialBtn: 'Revoir le didacticiel',
   aboutLabel: 'À propos',
   versionLabel: 'Version',
+  cloudSyncError: 'Sync iCloud échouée — données sauvegardées localement',
   madeWith: 'Fait avec ❤️ par Roman',
 
   // ── Tutorial ─────────────────────────────────────────────────────────────────

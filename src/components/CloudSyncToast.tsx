@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text } from 'react-native';
 import { addCloudSyncErrorListener } from '../storage/StorageService';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function CloudSyncToast() {
+  const { t } = useLanguage();
   const [visible, setVisible] = useState(false);
   const opacity = useRef(new Animated.Value(0)).current;
   const hideTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -25,7 +27,7 @@ export default function CloudSyncToast() {
 
   return (
     <Animated.View style={[styles.toast, { opacity }]}>
-      <Text style={styles.text}>☁️ Sync iCloud échouée — données sauvegardées localement</Text>
+      <Text style={styles.text}>{t('cloudSyncError')}</Text>
     </Animated.View>
   );
 }
