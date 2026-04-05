@@ -37,6 +37,7 @@ export const en: Strings = {
   availableGames: 'Available games',
   addGame: '+ Add',
   rulesAlertTitle: 'Rules — {{name}}',
+  fullRulesBtn: 'Full rules →',
 
   // ── GameScreen ───────────────────────────────────────────────────────────────
   notifTitle: 'Game in progress 🎮',
@@ -260,6 +261,7 @@ export const en: Strings = {
   tutorialBtn: 'View tutorial again',
   aboutLabel: 'About',
   versionLabel: 'Version',
+  cloudSyncError: 'iCloud sync failed — data saved locally',
   madeWith: 'Made with ❤️ by Roman',
 
   // ── Tutorial ─────────────────────────────────────────────────────────────────
